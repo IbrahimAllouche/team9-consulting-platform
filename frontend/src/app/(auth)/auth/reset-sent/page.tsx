@@ -1,23 +1,27 @@
 import Link from 'next/link'
+import AuthCard from '@/components/auth/AuthCard'
 
 export default function ResetSentPage() {
   return (
-    <section className="w-full rounded-[22px] bg-white px-7 py-9 text-center shadow-[0_18px_45px_rgba(45,11,105,0.12)] sm:px-9 sm:py-10">
+    <AuthCard
+      title="Check your email"
+      description="If an account matches that address, a password-reset link will arrive shortly."
+      centred
+    >
       {/*
-       * Decorative confirmation icon from the approved mockup.
-       * The SVG is hidden from screen readers because the heading communicates
-       * the same confirmation meaning in text.
+       * The icon is decorative because the heading already communicates the
+       * successful result to screen-reader users.
        */}
       <div
-        className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border-2 border-[#FF9A37] bg-[#FFF4C7]"
+        className="border-plant-green mx-auto flex h-16 w-16 items-center justify-center rounded-full border-2 bg-white"
         aria-hidden="true"
       >
         <svg
           viewBox="0 0 24 24"
-          className="h-8 w-8 text-[#F36F16]"
+          className="text-plant-green h-8 w-8"
           fill="none"
           stroke="currentColor"
-          strokeWidth="1.8"
+          strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
         >
@@ -25,20 +29,16 @@ export default function ResetSentPage() {
         </svg>
       </div>
 
-      <h2 className="mt-7 text-3xl font-extrabold tracking-tight text-[#2D0B69]">
-        Check your inbox
-      </h2>
-
-      <p className="mx-auto mt-3 max-w-[300px] text-sm leading-5 text-[#7A8190]">
-        We&apos;ve sent a reset link to your email. It may take a minute to arrive.
+      <p className="text-charcoal/75 mt-5 text-sm leading-6">
+        Check your spam or junk folder if the message does not appear after a few minutes.
       </p>
 
       <Link
         href="/auth/signin"
-        className="mt-7 flex h-12 w-full items-center justify-center rounded-full border-b-[3px] border-[#F36F16] bg-[#FF8A36] px-5 text-sm font-bold text-white transition hover:bg-[#F97E26] focus:ring-4 focus:ring-[#FF8A36]/25 focus:outline-none"
+        className="bg-building-far text-dark-blue hover:bg-light-blue mt-6 flex h-11 w-full items-center justify-center rounded-lg px-4 text-sm font-medium transition"
       >
         Back to sign in
       </Link>
-    </section>
+    </AuthCard>
   )
 }
