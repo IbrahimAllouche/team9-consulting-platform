@@ -1,26 +1,99 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
+/*
+ * These tokens come from the approved colour palette. Keeping them in
+ * one location means the whole interface can be adjusted later without
+ * searching through every React component.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f4ede1;
+  --foreground: #2c2c2a;
+
+  --warm-cream: #f4ede1;
+  --honey-wood: #c98a3e;
+  --wood-shadow: #8a5a26;
+  --light-blue: #7eb6e0;
+  --dark-blue: #1f4e79;
+  --plant-green: #5b8c4a;
+  --warm-grey: #d9d4c8;
+  --charcoal: #2c2c2a;
+
+  --sky-blue: #cbe6f5;
+  --cloud-white: #f7fafc;
+  --building-far: #7fa8c2;
+  --building-near: #3a6b8c;
+
+  --lift-silver-light: #c8cdd1;
+  --lift-silver-dark: #8b9196;
+  --lift-silver-trim: #5a6166;
+
+  --danger: #b42318;
+  --focus-ring: rgba(126, 182, 224, 0.45);
 }
 
+/*
+ * Exposing the variables through Tailwind's theme allows both approaches:
+ * bg-[var(--dark-blue)] and the shorter bg-dark-blue.
+ */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+  --color-warm-cream: var(--warm-cream);
+  --color-honey-wood: var(--honey-wood);
+  --color-wood-shadow: var(--wood-shadow);
+  --color-light-blue: var(--light-blue);
+  --color-dark-blue: var(--dark-blue);
+  --color-plant-green: var(--plant-green);
+  --color-warm-grey: var(--warm-grey);
+  --color-charcoal: var(--charcoal);
+
+  --color-sky-blue: var(--sky-blue);
+  --color-cloud-white: var(--cloud-white);
+  --color-building-far: var(--building-far);
+  --color-building-near: var(--building-near);
+
+  --color-lift-silver-light: var(--lift-silver-light);
+  --color-lift-silver-dark: var(--lift-silver-dark);
+  --color-lift-silver-trim: var(--lift-silver-trim);
+
+  --font-sans: var(--font-poppins);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/*
+ * Dark mode is intentionally not automatic. The current visual design has a
+ * specific daytime skyline, so changing colours based on the user's system
+ * setting would make the implementation differ from the approved wireframe.
+ */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: var(--background);
 }
 
 body {
+  min-height: 100%;
+  margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-poppins), Arial, Helvetica, sans-serif;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+/*
+ * A consistent keyboard focus style is important because the authentication
+ * flow must remain usable without a mouse.
+ */
+:focus-visible {
+  outline: 3px solid var(--light-blue);
+  outline-offset: 3px;
 }

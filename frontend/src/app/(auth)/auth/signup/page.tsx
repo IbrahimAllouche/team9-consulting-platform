@@ -6,17 +6,16 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
+import AuthCard from '@/components/auth/AuthCard'
+import { FullPageSpinner } from '@/components/shared/LoadingSpinner'
 import { useAuth } from '@/hooks/useAuth'
 import { signupSchema, type SignupInput } from '@/lib/validations/auth'
-import { FullPageSpinner } from '@/components/shared/LoadingSpinner'
+
+const inputClassName =
+  'h-11 w-full rounded-md border border-lift-silver-dark bg-white px-3 text-sm text-charcoal outline-none placeholder:text-charcoal/45 focus:border-dark-blue focus:ring-3 focus:ring-[var(--focus-ring)] aria-invalid:border-red-600'
 
 export default function SignUpPage() {
   const router = useRouter()
-
-  /*
-   * The approved design uses email/password registration only.
-   * Google sign-up is intentionally not displayed on this page.
-   */
   const { user, loading, signUpWithEmail } = useAuth()
 
   const {
@@ -27,9 +26,6 @@ export default function SignUpPage() {
     resolver: zodResolver(signupSchema),
   })
 
-  /*
-   * Prevent an already authenticated user from remaining on the sign-up page.
-   */
   useEffect(() => {
     if (!loading && !isSubmitting && user) {
       router.replace('/team')
@@ -40,24 +36,17 @@ export default function SignUpPage() {
     return <FullPageSpinner />
   }
 
-  /*
-   * Preserve the existing Firebase registration flow.
-   *
-   * confirmPassword is validated in signupSchema, but it is deliberately not
-   * passed to Firebase. Firebase needs only email, password and display name.
-   */
   const onSubmit = async (data: SignupInput) => {
     try {
-      await signUpWithEmail(data.email, data.password, data.displayName)
-
       /*
-       * The existing boilerplate sends a verification email before returning
-       * the user to the sign-in screen.
+       * Firebase only receives the email, password and display name.
+       * confirmPassword remains a client-side safety check.
        */
+      await signUpWithEmail(data.email, data.password, data.displayName)
       router.push('/auth/signin?verification=sent')
     } catch (error: unknown) {
       if (error instanceof Error && error.message.includes('email-already-in-use')) {
-        toast.error('An account with this email already exists')
+        toast.error('An account with this email already exists.')
       } else {
         toast.error('Failed to create account. Please try again.')
       }
@@ -65,25 +54,24 @@ export default function SignUpPage() {
   }
 
   return (
-    <section className="w-full rounded-[22px] border border-[#9B63F3] bg-white px-7 py-8 shadow-[0_18px_45px_rgba(45,11,105,0.12)] sm:px-9">
-      {/* Heading from the approved sign-up mockup. */}
-      <header className="mb-6">
-        <h2 className="text-3xl font-extrabold tracking-tight text-[#2D0B69]">
-          Join the crew!
-        </h2>
-
-        <p className="mt-2 text-sm text-[#7A8190]">
-          Use your email to get started.
-        </p>
-      </header>
-
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-        {/* Full-name field */}
-        <div>
-          <label
-            htmlFor="displayName"
-            className="mb-1.5 block text-sm font-bold text-[#2D0B69]"
+    <AuthCard
+      title="Join the academy"
+      description="Create your consultant profile before travelling to floor 12."
+      footer={
+        <p>
+          Already registered?{' '}
+          <Link
+            href="/auth/signin"
+            className="hover:text-light-blue font-medium text-white underline underline-offset-4"
           >
+            Sign in
+          </Link>
+        </p>
+      }
+    >
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+        <div>
+          <label htmlFor="displayName" className="mb-1.5 block text-sm font-medium">
             Full name
           </label>
 
@@ -91,17 +79,17 @@ export default function SignUpPage() {
             id="displayName"
             type="text"
             autoComplete="name"
-            placeholder="Alex Moreau"
+            placeholder="Your full name"
             aria-invalid={Boolean(errors.displayName)}
             aria-describedby={errors.displayName ? 'display-name-error' : undefined}
-            className="h-11 w-full rounded-full border border-[#E8DED3] bg-[#FFFCF8] px-4 text-sm text-[#2D0B69] outline-none transition placeholder:text-[#A9B0BF] focus:border-[#8E4DE8] focus:ring-2 focus:ring-[#8E4DE8]/20 aria-invalid:border-red-500 aria-invalid:ring-red-500/15"
+            className={inputClassName}
             {...register('displayName')}
           />
 
           {errors.displayName && (
             <p
               id="display-name-error"
-              className="mt-1 text-xs font-medium text-red-600"
+              className="mt-1 text-xs font-medium text-red-700"
               role="alert"
             >
               {errors.displayName.message}
@@ -109,9 +97,8 @@ export default function SignUpPage() {
           )}
         </div>
 
-        {/* Email field */}
         <div>
-          <label htmlFor="email" className="mb-1.5 block text-sm font-bold text-[#2D0B69]">
+          <label htmlFor="email" className="mb-1.5 block text-sm font-medium">
             Email
           </label>
 
@@ -121,24 +108,24 @@ export default function SignUpPage() {
             autoComplete="email"
             placeholder="you@company.com"
             aria-invalid={Boolean(errors.email)}
-            aria-describedby={errors.email ? 'email-error' : undefined}
-            className="h-11 w-full rounded-full border border-[#E8DED3] bg-[#FFFCF8] px-4 text-sm text-[#2D0B69] outline-none transition placeholder:text-[#A9B0BF] focus:border-[#8E4DE8] focus:ring-2 focus:ring-[#8E4DE8]/20 aria-invalid:border-red-500 aria-invalid:ring-red-500/15"
+            aria-describedby={errors.email ? 'signup-email-error' : undefined}
+            className={inputClassName}
             {...register('email')}
           />
 
           {errors.email && (
-            <p id="email-error" className="mt-1 text-xs font-medium text-red-600" role="alert">
+            <p
+              id="signup-email-error"
+              className="mt-1 text-xs font-medium text-red-700"
+              role="alert"
+            >
               {errors.email.message}
             </p>
           )}
         </div>
 
-        {/* Password field */}
         <div>
-          <label
-            htmlFor="password"
-            className="mb-1.5 block text-sm font-bold text-[#2D0B69]"
-          >
+          <label htmlFor="password" className="mb-1.5 block text-sm font-medium">
             Password
           </label>
 
@@ -146,34 +133,30 @@ export default function SignUpPage() {
             id="password"
             type="password"
             autoComplete="new-password"
-            placeholder="••••••••"
+            placeholder="Create a secure password"
             aria-invalid={Boolean(errors.password)}
-            aria-describedby={errors.password ? 'password-error' : 'password-help'}
-            className="h-11 w-full rounded-full border border-[#E8DED3] bg-[#FFFCF8] px-4 text-sm text-[#2D0B69] outline-none transition placeholder:text-[#A9B0BF] focus:border-[#8E4DE8] focus:ring-2 focus:ring-[#8E4DE8]/20 aria-invalid:border-red-500 aria-invalid:ring-red-500/15"
+            aria-describedby={errors.password ? 'signup-password-error' : 'password-help'}
+            className={inputClassName}
             {...register('password')}
           />
 
           {errors.password ? (
             <p
-              id="password-error"
-              className="mt-1 text-xs font-medium text-red-600"
+              id="signup-password-error"
+              className="mt-1 text-xs font-medium text-red-700"
               role="alert"
             >
               {errors.password.message}
             </p>
           ) : (
-            <p id="password-help" className="mt-1 text-xs text-[#7A8190]">
-              At least 8 characters, one uppercase letter and one number.
+            <p id="password-help" className="text-charcoal/70 mt-1 text-xs">
+              Use at least 8 characters, one uppercase letter and one number.
             </p>
           )}
         </div>
 
-        {/* Confirmation field retained for safer account creation. */}
         <div>
-          <label
-            htmlFor="confirmPassword"
-            className="mb-1.5 block text-sm font-bold text-[#2D0B69]"
-          >
+          <label htmlFor="confirmPassword" className="mb-1.5 block text-sm font-medium">
             Confirm password
           </label>
 
@@ -181,19 +164,17 @@ export default function SignUpPage() {
             id="confirmPassword"
             type="password"
             autoComplete="new-password"
-            placeholder="••••••••"
+            placeholder="Repeat your password"
             aria-invalid={Boolean(errors.confirmPassword)}
-            aria-describedby={
-              errors.confirmPassword ? 'confirm-password-error' : undefined
-            }
-            className="h-11 w-full rounded-full border border-[#E8DED3] bg-[#FFFCF8] px-4 text-sm text-[#2D0B69] outline-none transition placeholder:text-[#A9B0BF] focus:border-[#8E4DE8] focus:ring-2 focus:ring-[#8E4DE8]/20 aria-invalid:border-red-500 aria-invalid:ring-red-500/15"
+            aria-describedby={errors.confirmPassword ? 'confirm-password-error' : undefined}
+            className={inputClassName}
             {...register('confirmPassword')}
           />
 
           {errors.confirmPassword && (
             <p
               id="confirm-password-error"
-              className="mt-1 text-xs font-medium text-red-600"
+              className="mt-1 text-xs font-medium text-red-700"
               role="alert"
             >
               {errors.confirmPassword.message}
@@ -201,25 +182,14 @@ export default function SignUpPage() {
           )}
         </div>
 
-        {/* Existing disabled/loading behaviour is preserved. */}
         <button
           type="submit"
           disabled={isSubmitting}
-          className="mt-2 flex h-12 w-full items-center justify-center rounded-full border-b-[3px] border-[#F36F16] bg-[#FF8A36] px-5 text-sm font-bold text-white transition hover:bg-[#F97E26] focus:ring-4 focus:ring-[#FF8A36]/25 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+          className="bg-building-far text-dark-blue hover:bg-light-blue flex h-11 w-full items-center justify-center rounded-lg px-4 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isSubmitting ? 'Creating account…' : 'Create account'}
+          {isSubmitting ? 'Creating profile...' : 'Create consultant profile'}
         </button>
       </form>
-
-      <p className="mt-6 text-center text-sm text-[#7A8190]">
-        Already have an account?{' '}
-        <Link
-          href="/auth/signin"
-          className="font-bold text-[#2D0B69] underline decoration-1 underline-offset-2 transition hover:text-[#8E4DE8]"
-        >
-          Sign in
-        </Link>
-      </p>
-    </section>
+    </AuthCard>
   )
 }
