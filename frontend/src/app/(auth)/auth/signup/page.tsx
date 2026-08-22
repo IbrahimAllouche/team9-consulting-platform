@@ -26,7 +26,7 @@ export default function SignUpPage() {
 
   useEffect(() => {
     if (!loading && !isSubmitting && user) {
-      router.replace('/team')
+      router.replace('/dashboard')
     }
   }, [loading, isSubmitting, user, router])
 
