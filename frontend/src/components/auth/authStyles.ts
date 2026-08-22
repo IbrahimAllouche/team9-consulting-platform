@@ -10,6 +10,6 @@ export const authInputClassName =
 
 export const authPrimaryButtonClassName =
   'flex h-11 w-full items-center justify-center rounded-lg border-[3px] border-charcoal bg-plant-green px-4 text-sm font-semibold text-white shadow-[4px_4px_0_#000] transition hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#4f7d41] hover:shadow-[2px_2px_0_#000] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60'
-  
+
 export const authInlineLinkClassName =
   'inline-block text-sm font-semibold text-dark-blue underline decoration-2 underline-offset-3 transition hover:text-building-near'

@@ -34,10 +34,7 @@ export default function ResetSentPage() {
         Check your spam or junk folder if the message does not appear after a few minutes.
       </p>
 
-      <Link
-        href="/auth/signin"
-        className={`${authPrimaryButtonClassName} mt-6`}
-      >
+      <Link href="/auth/signin" className={`${authPrimaryButtonClassName} mt-6`}>
         Back to sign in
       </Link>
     </AuthCard>

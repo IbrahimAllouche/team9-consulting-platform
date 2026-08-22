@@ -8,10 +8,7 @@ import { toast } from 'sonner'
 import AuthCard from '@/components/auth/AuthCard'
 import { resetPassword } from '@/lib/firebase/auth'
 import { resetPasswordSchema, type ResetPasswordInput } from '@/lib/validations/auth'
-import {
-  authInputClassName,
-  authPrimaryButtonClassName,
-} from '@/components/auth/authStyles'
+import { authInputClassName, authPrimaryButtonClassName } from '@/components/auth/authStyles'
 
 export default function ForgotPasswordPage() {
   const router = useRouter()
@@ -83,11 +80,7 @@ export default function ForgotPasswordPage() {
           )}
         </div>
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className={authPrimaryButtonClassName}
-        >
+        <button type="submit" disabled={isSubmitting} className={authPrimaryButtonClassName}>
           {isSubmitting ? 'Sending reset link...' : 'Send reset link'}
         </button>
       </form>

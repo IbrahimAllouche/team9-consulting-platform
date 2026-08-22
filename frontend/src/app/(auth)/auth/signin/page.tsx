@@ -168,18 +168,11 @@ export default function SignInPage() {
               )}
             </div>
 
-            <Link
-              href="/auth/forgot-password"
-              className={authInlineLinkClassName}
-            >
+            <Link href="/auth/forgot-password" className={authInlineLinkClassName}>
               Forgot password?
             </Link>
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className={authPrimaryButtonClassName}
-            >
+            <button type="submit" disabled={isSubmitting} className={authPrimaryButtonClassName}>
               {isSubmitting ? 'Calling the lift...' : 'Floor 12: Enter Academy'}
             </button>
           </form>

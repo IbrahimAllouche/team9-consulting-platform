@@ -10,10 +10,7 @@ import AuthCard from '@/components/auth/AuthCard'
 import { FullPageSpinner } from '@/components/shared/LoadingSpinner'
 import { useAuth } from '@/hooks/useAuth'
 import { signupSchema, type SignupInput } from '@/lib/validations/auth'
-import {
-  authInputClassName,
-  authPrimaryButtonClassName,
-} from '@/components/auth/authStyles'
+import { authInputClassName, authPrimaryButtonClassName } from '@/components/auth/authStyles'
 
 export default function SignUpPage() {
   const router = useRouter()
@@ -183,11 +180,7 @@ export default function SignUpPage() {
           )}
         </div>
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className={authPrimaryButtonClassName}
-        >
+        <button type="submit" disabled={isSubmitting} className={authPrimaryButtonClassName}>
           {isSubmitting ? 'Creating profile...' : 'Create consultant profile'}
         </button>
       </form>

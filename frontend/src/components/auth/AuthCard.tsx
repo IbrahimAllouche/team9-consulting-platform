@@ -39,9 +39,7 @@ export default function AuthCard({
        * connected to the IBM Consultancy 101 experience.
        */}
       <div className="border-charcoal bg-honey-wood flex min-h-10 items-center border-b-[4px] px-5 py-2">
-        <p className="text-charcoal text-xs font-semibold tracking-wide">
-          IBM CONSULTANCY 101
-        </p>
+        <p className="text-charcoal text-xs font-semibold tracking-wide">IBM CONSULTANCY 101</p>
 
         {/*
          * These circles are decorative window controls. They reinforce the
@@ -62,9 +60,7 @@ export default function AuthCard({
           {title}
         </h1>
 
-        <p className="text-cloud-white/80 mt-2 text-sm leading-6">
-          {description}
-        </p>
+        <p className="text-cloud-white/80 mt-2 text-sm leading-6">{description}</p>
       </header>
 
       {/*
@@ -72,7 +68,7 @@ export default function AuthCard({
        * the form feel like a contained game interface rather than a generic
        * website card.
        */}
-      <div className="border-[#b88900] bg-warm-cream text-charcoal mx-5 rounded-lg border-[4px] p-5 shadow-[inset_0_-3px_0_rgba(138,90,38,0.14)] sm:mx-6 sm:p-6">
+      <div className="bg-warm-cream text-charcoal mx-5 rounded-lg border-[4px] border-[#b88900] p-5 shadow-[inset_0_-3px_0_rgba(138,90,38,0.14)] sm:mx-6 sm:p-6">
         {children}
       </div>
 
@@ -80,11 +76,7 @@ export default function AuthCard({
        * Footer links remain outside the form panel so actions such as account
        * creation and returning to sign in are visually secondary.
        */}
-      {footer && (
-        <div className="text-cloud-white/90 px-6 py-5 text-center text-sm">
-          {footer}
-        </div>
-      )}
+      {footer && <div className="text-cloud-white/90 px-6 py-5 text-center text-sm">{footer}</div>}
 
       {/*
        * Pages without a footer still need breathing room below the cream panel.
