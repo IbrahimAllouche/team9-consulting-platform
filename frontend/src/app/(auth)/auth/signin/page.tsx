@@ -36,7 +36,7 @@ export default function SignInPage() {
    */
   useEffect(() => {
     if (!loading && user) {
-      router.replace('/team')
+      router.replace('/dashboard')
     }
   }, [loading, user, router])
 
@@ -61,7 +61,7 @@ export default function SignInPage() {
       await signInWithEmail(data.email, data.password)
 
       toast.success('Signed in successfully')
-      router.replace('/team')
+      router.replace('/dashboard')
       router.refresh()
     } catch (error: unknown) {
       if (error instanceof Error && error.message.includes('email-not-verified')) {

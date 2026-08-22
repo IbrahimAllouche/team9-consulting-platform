@@ -274,16 +274,22 @@ export default function ElevatorIntro() {
       <CartoonPlant side="left" />
       <CartoonPlant side="right" />
 
-      {/* Elevator call-button panel */}
+      {/*
+       * Elevator call buttons are positioned just outside the right edge of
+       * the elevator rather than against the edge of the browser window.
+       */}
       <div
-        className="border-charcoal bg-lift-silver-light absolute top-[45%] right-[2%] z-[70] hidden -translate-y-1/2 flex-col gap-3 border-[4px] p-3 shadow-[4px_4px_0_rgba(44,44,42,0.22)] sm:flex lg:right-[5%]"
-        aria-hidden="true"
+        className="border-charcoal bg-lift-silver-light absolute top-[43%] z-[80] hidden -translate-y-1/2 flex-col gap-3 rounded-lg border-[4px] p-3 shadow-[4px_4px_0_rgba(44,44,42,0.22)] md:flex"
+        style={{
+          left: 'calc(50% + min(34vw, 410px) + 24px)',
+        }}
+        aria-label="Elevator controls"
       >
-        <span className="border-charcoal bg-cloud-white text-charcoal flex h-9 w-9 items-center justify-center rounded-full border-[3px] text-sm">
+        <span className="border-charcoal bg-cloud-white text-charcoal flex h-10 w-10 items-center justify-center rounded-full border-[3px] text-base font-bold">
           ▲
         </span>
 
-        <span className="border-charcoal bg-cloud-white text-charcoal flex h-9 w-9 items-center justify-center rounded-full border-[3px] text-sm">
+        <span className="border-charcoal bg-cloud-white text-charcoal flex h-10 w-10 items-center justify-center rounded-full border-[3px] text-base font-bold">
           ▼
         </span>
       </div>
