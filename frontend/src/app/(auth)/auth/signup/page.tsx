@@ -10,9 +10,10 @@ import AuthCard from '@/components/auth/AuthCard'
 import { FullPageSpinner } from '@/components/shared/LoadingSpinner'
 import { useAuth } from '@/hooks/useAuth'
 import { signupSchema, type SignupInput } from '@/lib/validations/auth'
-
-const inputClassName =
-  'h-11 w-full rounded-md border border-lift-silver-dark bg-white px-3 text-sm text-charcoal outline-none placeholder:text-charcoal/45 focus:border-dark-blue focus:ring-3 focus:ring-[var(--focus-ring)] aria-invalid:border-red-600'
+import {
+  authInputClassName,
+  authPrimaryButtonClassName,
+} from '@/components/auth/authStyles'
 
 export default function SignUpPage() {
   const router = useRouter()
@@ -82,7 +83,7 @@ export default function SignUpPage() {
             placeholder="Your full name"
             aria-invalid={Boolean(errors.displayName)}
             aria-describedby={errors.displayName ? 'display-name-error' : undefined}
-            className={inputClassName}
+            className={authInputClassName}
             {...register('displayName')}
           />
 
@@ -109,7 +110,7 @@ export default function SignUpPage() {
             placeholder="you@company.com"
             aria-invalid={Boolean(errors.email)}
             aria-describedby={errors.email ? 'signup-email-error' : undefined}
-            className={inputClassName}
+            className={authInputClassName}
             {...register('email')}
           />
 
@@ -136,7 +137,7 @@ export default function SignUpPage() {
             placeholder="Create a secure password"
             aria-invalid={Boolean(errors.password)}
             aria-describedby={errors.password ? 'signup-password-error' : 'password-help'}
-            className={inputClassName}
+            className={authInputClassName}
             {...register('password')}
           />
 
@@ -167,7 +168,7 @@ export default function SignUpPage() {
             placeholder="Repeat your password"
             aria-invalid={Boolean(errors.confirmPassword)}
             aria-describedby={errors.confirmPassword ? 'confirm-password-error' : undefined}
-            className={inputClassName}
+            className={authInputClassName}
             {...register('confirmPassword')}
           />
 
@@ -185,7 +186,7 @@ export default function SignUpPage() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="bg-building-far text-dark-blue hover:bg-light-blue flex h-11 w-full items-center justify-center rounded-lg px-4 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60"
+          className={authPrimaryButtonClassName}
         >
           {isSubmitting ? 'Creating profile...' : 'Create consultant profile'}
         </button>

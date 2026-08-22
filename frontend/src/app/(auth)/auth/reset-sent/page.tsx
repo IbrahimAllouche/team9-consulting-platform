@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import AuthCard from '@/components/auth/AuthCard'
+import { authPrimaryButtonClassName } from '@/components/auth/authStyles'
 
 export default function ResetSentPage() {
   return (
@@ -35,7 +36,7 @@ export default function ResetSentPage() {
 
       <Link
         href="/auth/signin"
-        className="bg-building-far text-dark-blue hover:bg-light-blue mt-6 flex h-11 w-full items-center justify-center rounded-lg px-4 text-sm font-medium transition"
+        className={`${authPrimaryButtonClassName} mt-6`}
       >
         Back to sign in
       </Link>
