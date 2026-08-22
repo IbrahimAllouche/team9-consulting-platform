@@ -3,6 +3,7 @@ packages:
   - 'backend'
 
 overrides:
+  js-yaml: '4.3.1'
   # firebase-functions pulls in @types/express@4 transitively, which conflicts
   # with our own @types/express@^5 (backend uses Express 5) and causes
   # environment-dependent type errors depending on how pnpm hoists the two
