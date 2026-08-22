@@ -53,7 +53,8 @@ export default function LandingHeader() {
        * The wooden header follows the same warm, outlined cartoon style as
        * the elevator and authentication pages.
        */}
-      <header className="border-charcoal bg-honey-wood relative z-40 grid min-h-24 grid-cols-[1fr_auto_1fr] items-center border-[5px] px-4 shadow-[0_5px_0_var(--wood-shadow)] sm:px-7">
+      <header className="game-header border-charcoal bg-honey-wood relative z-40 grid min-h-24 grid-cols-[1fr_auto_1fr] items-center border-[5px] px-4 shadow-[0_5px_0_var(--wood-shadow)] sm:px-7">
+        {' '}
         {/* Hamburger button */}
         <div className="flex justify-start">
           <button
@@ -69,7 +70,6 @@ export default function LandingHeader() {
             {menuIsOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
           </button>
         </div>
-
         {/* True centred project title */}
         <Link
           href="/dashboard"
@@ -77,7 +77,6 @@ export default function LandingHeader() {
         >
           IBM CONSULTANCY 101
         </Link>
-
         {/* Sign-out button */}
         <div className="flex justify-end">
           <button

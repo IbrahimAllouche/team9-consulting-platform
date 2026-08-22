@@ -4,6 +4,7 @@ import { adminDb } from '@/lib/firebase/admin'
 import ConsultingRoom from '@/components/landing/ConsultingRoom'
 import ProgressPanel from '@/components/landing/ProgressPanel'
 import { consultingStages, initialConsultantProgress } from '@/components/landing/landingData'
+import type { CSSProperties } from 'react'
 
 export const metadata: Metadata = {
   title: 'Consulting Lobby',
@@ -50,6 +51,34 @@ export default async function DashboardPage() {
 
   return (
     <div className="bg-warm-cream min-h-[calc(100vh-6rem)]">
+      {/*
+       * Small ambient particles give the lobby some life while remaining behind all
+       * interactive content.
+       */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
+        {[
+          { left: '6%', top: '24%', size: '5px', duration: '6s', delay: '-1s' },
+          { left: '18%', top: '72%', size: '7px', duration: '8s', delay: '-4s' },
+          { left: '36%', top: '18%', size: '4px', duration: '7s', delay: '-2s' },
+          { left: '57%', top: '82%', size: '6px', duration: '6.5s', delay: '-5s' },
+          { left: '73%', top: '27%', size: '5px', duration: '7.5s', delay: '-3s' },
+          { left: '91%', top: '68%', size: '7px', duration: '8.5s', delay: '-6s' },
+        ].map((particle, index) => (
+          <span
+            key={`${particle.left}-${particle.top}`}
+            className="lobby-particle"
+            style={
+              {
+                left: particle.left,
+                top: particle.top,
+                '--particle-size': particle.size,
+                '--particle-duration': particle.duration,
+                '--particle-delay': particle.delay,
+              } as CSSProperties
+            }
+          />
+        ))}
+      </div>
       <div className="mx-auto max-w-[1800px] px-4 py-10 sm:px-7 lg:px-10">
         {/* Landing-page introduction */}
         <section aria-labelledby="lobby-heading">

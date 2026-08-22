@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import Image from 'next/image'
 import { LockKeyhole } from 'lucide-react'
 import type { ConsultingStage } from './landingData'
@@ -6,14 +7,6 @@ type ConsultingRoomProps = {
   stage: ConsultingStage
 }
 
-/**
- * Maps each consulting stage to the exact PNG filename stored inside:
- *
- * public/assets/landing/rooms
- *
- * Public assets begin at "/", so "public" is deliberately omitted from these
- * browser URLs.
- */
 const roomImageByType: Record<ConsultingStage['roomType'], string> = {
   'lead-room': '/assets/landing/rooms/findALead.png',
   'outreach-office': '/assets/landing/rooms/outreach.png',
@@ -23,12 +16,6 @@ const roomImageByType: Record<ConsultingStage['roomType'], string> = {
   'closing-room': '/assets/landing/rooms/closeDeal.png',
 }
 
-/**
- * Supplies useful alternative text for the furniture illustration.
- *
- * Room names and lock states remain real HTML rather than being baked into the
- * images, keeping the page accessible and easier to update later.
- */
 const roomImageDescriptionByType: Record<ConsultingStage['roomType'], string> = {
   'lead-room': 'Networking tables and chairs inside the lead-finding lobby',
   'outreach-office': 'Office desk prepared for client outreach',
@@ -39,11 +26,10 @@ const roomImageDescriptionByType: Record<ConsultingStage['roomType'], string> = 
 }
 
 /**
- * Displays one stage of the connected consulting dollhouse.
+ * Displays one consulting stage inside the connected dollhouse.
  *
- * Furniture is now rendered from a fixed PNG rather than CSS shapes. Because
- * the whole image scales together, every desk, chair and plant keeps exactly
- * the same relative position at every screen size.
+ * Each room receives an animation delay based on its stage number, producing a
+ * deliberate one-by-one reveal instead of every room appearing simultaneously.
  */
 export default function ConsultingRoom({ stage }: ConsultingRoomProps) {
   const isActive = stage.status === 'active'
@@ -52,18 +38,24 @@ export default function ConsultingRoom({ stage }: ConsultingRoomProps) {
   const imageSource = roomImageByType[stage.roomType]
   const imageDescription = roomImageDescriptionByType[stage.roomType]
 
+  const roomAnimationStyle = {
+    '--room-delay': `${(stage.id - 1) * 110}ms`,
+  } as CSSProperties
+
   return (
     <section
       id={`stage-${stage.id}`}
-      className={`border-charcoal relative min-h-80 overflow-hidden border-[4px] ${
-        isActive ? 'bg-[#ffdda3]' : 'bg-cloud-white'
+      style={roomAnimationStyle}
+      className={`game-room border-charcoal relative min-h-80 overflow-hidden border-[4px] ${
+        isActive
+          ? 'game-room-active cursor-pointer bg-[#ffdda3]'
+          : 'game-room-locked bg-cloud-white cursor-not-allowed'
       }`}
       aria-labelledby={`stage-${stage.id}-title`}
     >
-      {/*
-       * The room heading sits above the image so generated artwork can never
-       * cover the stage number, name, lock or action button.
-       */}
+      {/* Animated light appears only over the currently playable room. */}
+      {isActive && <div className="room-light-sweep" aria-hidden="true" />}
+
       <div className="relative z-20 flex items-start gap-3 p-4">
         <div className="border-charcoal bg-dark-blue flex h-14 w-12 shrink-0 items-center justify-center rounded-[35%] border-[3px] text-xl font-extrabold text-white shadow-[3px_3px_0_var(--charcoal)]">
           {stage.id}
@@ -79,14 +71,17 @@ export default function ConsultingRoom({ stage }: ConsultingRoomProps) {
             </h2>
 
             {isLocked && (
-              <LockKeyhole className="text-charcoal mt-0.5 h-5 w-5 shrink-0" aria-label="Locked" />
+              <LockKeyhole
+                className="room-lock text-charcoal mt-0.5 h-5 w-5 shrink-0"
+                aria-label="Locked"
+              />
             )}
           </div>
 
           {isActive ? (
             <button
               type="button"
-              className="border-charcoal bg-dark-blue hover:bg-building-near mt-3 rounded-lg border-[3px] px-5 py-2 text-sm font-extrabold text-white shadow-[3px_3px_0_var(--charcoal)] transition"
+              className="start-room-button border-charcoal bg-dark-blue hover:bg-building-near mt-3 rounded-lg border-[3px] px-5 py-2 text-sm font-extrabold text-white transition"
             >
               START HERE
             </button>
@@ -99,10 +94,8 @@ export default function ConsultingRoom({ stage }: ConsultingRoomProps) {
       </div>
 
       {/*
-       * The transparent image is fitted inside the available room area.
-       *
-       * object-contain prevents cropping, while object-bottom keeps furniture
-       * visually grounded on the room floor.
+       * The entire image scales and moves as one layer. This guarantees that
+       * furniture never changes position independently.
        */}
       <div
         className={`absolute inset-x-2 top-28 bottom-2 ${isLocked ? 'opacity-65' : 'opacity-100'}`}
@@ -112,15 +105,11 @@ export default function ConsultingRoom({ stage }: ConsultingRoomProps) {
           alt={imageDescription}
           fill
           sizes="(min-width: 1280px) 25vw, (min-width: 768px) 45vw, 90vw"
-          className="object-contain object-bottom"
+          className="room-furniture object-contain object-bottom"
           priority={stage.id === 1}
         />
       </div>
 
-      {/*
-       * Locked rooms remain visible, but this light overlay makes their
-       * unavailable state clear without obscuring the artwork.
-       */}
       {isLocked && (
         <div
           className="bg-warm-grey/10 pointer-events-none absolute inset-0 z-10"

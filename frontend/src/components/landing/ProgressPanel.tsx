@@ -31,7 +31,7 @@ export default function ProgressPanel({ progress }: ProgressPanelProps) {
   return (
     <aside className="grid content-start gap-6" aria-label="Consultant progress">
       {/* Level and XP card */}
-      <section className="border-charcoal bg-cloud-white rounded-3xl border-[5px] p-6 shadow-[7px_8px_0_var(--charcoal)]">
+      <section className="game-progress-panel border-charcoal bg-cloud-white rounded-3xl border-[5px] p-6 shadow-[7px_8px_0_var(--charcoal)]">
         <h2 className="text-dark-blue text-2xl font-extrabold">Level {progress.level}</h2>
 
         <div
@@ -43,7 +43,7 @@ export default function ProgressPanel({ progress }: ProgressPanelProps) {
           aria-valuenow={progress.currentXp}
         >
           <div
-            className="bg-dark-blue h-full rounded-full transition-[width] duration-500"
+            className="xp-progress-fill bg-dark-blue h-full rounded-full transition-[width] duration-500"
             style={{ width: `${xpPercentage}%` }}
           />
         </div>
@@ -54,7 +54,7 @@ export default function ProgressPanel({ progress }: ProgressPanelProps) {
       </section>
 
       {/* Overall consulting-loop progress card */}
-      <section className="border-charcoal bg-cloud-white rounded-3xl border-[5px] p-6 text-center shadow-[7px_8px_0_var(--charcoal)]">
+      <section className="game-progress-panel border-charcoal bg-cloud-white rounded-3xl border-[5px] p-6 text-center shadow-[7px_8px_0_var(--charcoal)]">
         <h2 className="text-dark-blue text-2xl font-extrabold">Your progress</h2>
 
         {/*
@@ -62,7 +62,7 @@ export default function ProgressPanel({ progress }: ProgressPanelProps) {
          * a chart library for a single small progress indicator.
          */}
         <div
-          className="border-charcoal relative mx-auto mt-7 flex h-44 w-44 items-center justify-center rounded-full border-[3px]"
+          className="progress-donut border-charcoal relative mx-auto mt-7 flex h-44 w-44 items-center justify-center rounded-full border-[3px]"
           style={{
             background: `conic-gradient(
               var(--plant-green) 0% ${stagePercentage}%,
@@ -84,7 +84,7 @@ export default function ProgressPanel({ progress }: ProgressPanelProps) {
       </section>
 
       {/* Consultant statistics card */}
-      <section className="border-charcoal bg-cloud-white rounded-3xl border-[5px] p-6 shadow-[7px_8px_0_var(--charcoal)]">
+      <section className="game-progress-panel border-charcoal bg-cloud-white rounded-3xl border-[5px] p-6 shadow-[7px_8px_0_var(--charcoal)]">
         <h2 className="text-dark-blue text-2xl font-extrabold">Your stats</h2>
 
         <dl className="mt-6 space-y-4 text-base">
