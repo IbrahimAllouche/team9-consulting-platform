@@ -1,56 +1,129 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 
-type IntroPhase = 'checking' | 'opening' | 'leaving' | 'hidden'
+type IntroPhase = 'typing' | 'opening' | 'leaving' | 'hidden'
+
+const ELEVATOR_TITLE = 'IBM CONSULTANCY 101'
+
+/**
+ * Large decorative plant positioned directly beside the elevator.
+ *
+ * The plant uses CSS shapes, so we do not need additional image files.
+ * It is anchored to the bottom of the screen to prevent it from floating.
+ */
+function CartoonPlant({ side }: { side: 'left' | 'right' }) {
+  /*
+   * The elevator is 68vw wide, with a maximum width of 820px.
+   * This calculation places each plant just outside the elevator frame.
+   */
+  const position =
+    side === 'left'
+      ? { right: 'calc(50% + min(34vw, 410px) + 8px)' }
+      : { left: 'calc(50% + min(34vw, 410px) + 8px)' }
+
+  return (
+    <div
+      className="absolute bottom-0 z-[65] hidden origin-bottom scale-75 md:block lg:scale-100"
+      style={position}
+      aria-hidden="true"
+    >
+      <div className="relative h-64 w-44">
+        {/* Left leaf */}
+        <div className="border-charcoal bg-plant-green absolute bottom-20 left-0 h-36 w-20 -rotate-[30deg] rounded-[55%] border-[5px]" />
+
+        {/* Tall middle leaf */}
+        <div className="border-charcoal bg-plant-green absolute bottom-20 left-12 h-44 w-20 -rotate-[8deg] rounded-[55%] border-[5px]" />
+
+        {/* Right leaf */}
+        <div className="border-charcoal bg-plant-green absolute right-0 bottom-20 h-36 w-20 rotate-[30deg] rounded-[55%] border-[5px]" />
+
+        {/* Plant pot */}
+        <div className="border-charcoal bg-honey-wood absolute right-0 bottom-0 left-0 h-24 rounded-t-xl rounded-b-3xl border-[5px] shadow-[0_8px_0_rgba(44,44,42,0.22)]">
+          <div className="border-wood-shadow absolute inset-x-3 top-4 border-t-[5px]" />
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function ElevatorIntro() {
   const reduceMotion = useReducedMotion()
-  const [phase, setPhase] = useState<IntroPhase>('checking')
+
+  /*
+   * The animation begins by typing the project title.
+   * Once typing finishes, the doors open and the whole intro fades away.
+   */
+  const [phase, setPhase] = useState<IntroPhase>('typing')
+
+  /*
+   * Timer IDs are stored so clicking "Skip animation" can cancel every
+   * scheduled animation. This prevents the elevator from briefly reappearing.
+   */
+  const timersRef = useRef<number[]>([])
 
   useEffect(() => {
-    /*
-     * Users who request reduced motion should reach the form immediately.
-     * The asynchronous update also satisfies React's effect linting rules.
-     */
-    if (reduceMotion) {
-      const hideTimer = window.setTimeout(() => {
-        setPhase('hidden')
-      }, 0)
-
-      return () => {
-        window.clearTimeout(hideTimer)
-      }
+    const registerTimer = (callback: () => void, delay: number) => {
+      const timer = window.setTimeout(callback, delay)
+      timersRef.current.push(timer)
     }
 
-    /*
-     * The closed doors remain visible briefly before opening. The animation
-     * runs on each fresh visit or refresh of the sign-in page.
-     */
-    const openTimer = window.setTimeout(() => {
-      setPhase('opening')
-    }, 850)
+    if (reduceMotion) {
+      /*
+       * Users who prefer reduced motion should not have to watch the full
+       * sequence. Using a timer avoids updating state directly in the effect.
+       */
+      registerTimer(() => {
+        setPhase('hidden')
+      }, 0)
+    } else {
+      /*
+       * Animation timeline:
+       *
+       * 0–2.3 seconds: title appears letter by letter.
+       * 2.3–4.1 seconds: elevator doors open.
+       * 4.1–4.55 seconds: intro fades away.
+       */
+      registerTimer(() => {
+        setPhase('opening')
+      }, 2300)
 
-    const leaveTimer = window.setTimeout(() => {
-      setPhase('leaving')
-    }, 2000)
+      registerTimer(() => {
+        setPhase('leaving')
+      }, 4100)
 
-    const hideTimer = window.setTimeout(() => {
-      setPhase('hidden')
-    }, 2350)
+      registerTimer(() => {
+        setPhase('hidden')
+      }, 4550)
+    }
 
     return () => {
-      window.clearTimeout(openTimer)
-      window.clearTimeout(leaveTimer)
-      window.clearTimeout(hideTimer)
+      timersRef.current.forEach((timer) => {
+        window.clearTimeout(timer)
+      })
+
+      timersRef.current = []
     }
   }, [reduceMotion])
 
   const skipIntro = () => {
+    /*
+     * Cancel all pending phases before hiding the intro.
+     * Otherwise an old timer could change the phase after Skip is clicked.
+     */
+    timersRef.current.forEach((timer) => {
+      window.clearTimeout(timer)
+    })
+
+    timersRef.current = []
     setPhase('hidden')
   }
 
+  /*
+   * Completely remove the intro after it finishes.
+   * This prevents the doors from resetting and becoming visible again.
+   */
   if (phase === 'hidden') {
     return null
   }
@@ -59,34 +132,43 @@ export default function ElevatorIntro() {
 
   return (
     <motion.div
-      /*
-       * The lift is a temporary full-screen layer above the already-rendered
-       * sign-in page. When this layer fades, the academy screen is revealed.
-       */
       className="bg-warm-cream fixed inset-0 z-50 overflow-hidden"
       initial={{ opacity: 1 }}
       animate={{ opacity: phase === 'leaving' ? 0 : 1 }}
-      transition={{ duration: 0.35 }}
-      aria-label="IBM Consultancy 101 lift opening"
+      transition={{ duration: 0.45 }}
+      aria-label="IBM Consultancy 101 elevator opening"
     >
+      {/*
+       * Warm striped wallpaper creates the cosy cartoon lobby appearance
+       * without requiring a separate background image.
+       */}
+      <div className="absolute inset-0 bg-[repeating-linear-gradient(90deg,#f4ede1_0px,#f4ede1_44px,#faf6ee_44px,#faf6ee_88px)]" />
+
+      {/* Checkerboard lobby floor */}
+      <div className="border-charcoal absolute inset-x-0 bottom-0 h-[34%] border-t-[4px] bg-[conic-gradient(from_90deg_at_1px_1px,#d9d4c8_90deg,#f4ede1_0)_0_0/48px_48px]" />
+
+      {/* Wooden trim separating the wall and floor */}
+      <div className="border-charcoal bg-wood-shadow absolute inset-x-0 bottom-[34%] z-10 h-4 border-y-[3px]" />
+
+      {/* Allows the user to immediately dismiss the intro. */}
       <button
         type="button"
         onClick={skipIntro}
-        className="bg-charcoal/85 hover:bg-charcoal absolute top-4 right-4 z-[80] rounded-full px-4 py-2 text-sm font-medium text-white transition"
+        className="border-charcoal bg-dark-blue hover:bg-building-near absolute top-4 right-4 z-[90] rounded-lg border-[3px] px-4 py-2 text-sm font-semibold text-white shadow-[3px_3px_0_var(--charcoal)] transition"
       >
         Skip animation
       </button>
 
       {/*
-       * The outer trim acts as the architectural lift frame. Its heavy border
-       * distinguishes the lift from an ordinary pair of sliding panels.
+       * The elevator now reaches the bottom of the screen.
+       * Moving the bottom edge to zero makes it feel grounded on the floor.
        */}
-      <div className="border-lift-silver-trim absolute top-[8%] bottom-[8%] left-1/2 w-[min(76vw,920px)] -translate-x-1/2 border-[18px] bg-[#15191c] shadow-[0_28px_60px_rgba(44,44,42,0.30)] sm:border-[24px]">
-        {/*
-         * The illuminated floor indicator gives the lift a destination and
-         * reinforces the "Going up?" theme of the following page.
-         */}
-        <div className="bg-charcoal border-lift-silver-dark absolute top-[-18px] left-1/2 z-[75] flex h-10 w-28 -translate-x-1/2 items-center justify-center gap-2 border-2 font-medium text-white shadow-lg sm:top-[-24px]">
+      <div className="border-charcoal bg-honey-wood absolute top-[6%] bottom-0 left-1/2 z-40 w-[min(68vw,820px)] -translate-x-1/2 overflow-hidden rounded-t-[170px] border-[8px] p-4 shadow-[8px_8px_0_rgba(44,44,42,0.25)]">
+        {/* Dark elevator interior revealed as the doors open */}
+        <div className="bg-charcoal absolute inset-4 z-[45] rounded-t-[145px]" />
+
+        {/* Floor indicator */}
+        <div className="border-charcoal bg-charcoal absolute top-2 left-1/2 z-[75] flex h-12 w-32 -translate-x-1/2 items-center justify-center gap-3 rounded-2xl border-[4px] text-lg font-semibold text-white shadow-[4px_4px_0_rgba(44,44,42,0.22)]">
           <motion.span
             className="text-light-blue"
             aria-hidden="true"
@@ -95,7 +177,7 @@ export default function ElevatorIntro() {
               opacity: [0.65, 1, 0.65],
             }}
             transition={{
-              duration: 0.8,
+              duration: 0.9,
               repeat: Infinity,
               ease: 'easeInOut',
             }}
@@ -103,63 +185,48 @@ export default function ElevatorIntro() {
             ▲
           </motion.span>
 
-          <span>12</span>
+          <span className="text-light-blue">12</span>
         </div>
 
-        {/*
-         * A dark lift interior becomes visible between the doors as they open.
-         * This creates more depth than exposing a flat wall immediately.
-         */}
-        <div className="absolute inset-0 z-[50] bg-[linear-gradient(90deg,#111518_0%,#2c3236_50%,#111518_100%)]">
-          <div className="absolute inset-x-0 bottom-0 h-5 bg-[linear-gradient(180deg,#8b9196_0%,#3f4549_100%)] shadow-[0_-4px_10px_rgba(0,0,0,0.45)]" />
-        </div>
-
-        {/*
-         * The subtle metallic gradients and inside-edge shadows give each door
-         * the appearance of brushed metal rather than a flat grey rectangle.
-         */}
+        {/* Left elevator door */}
         <motion.div
-          className="border-lift-silver-trim absolute inset-y-0 left-0 z-[55] w-1/2 overflow-hidden border-r-2 shadow-[inset_-12px_0_18px_rgba(44,44,42,0.24)]"
-          style={{
-            background: 'linear-gradient(90deg, #b7bdc2 0%, #d5d9dc 48%, #b6bcc1 100%)',
-          }}
+          className="border-charcoal bg-lift-silver-light absolute top-16 bottom-4 left-4 z-[55] w-[calc(50%_-_16px)] overflow-hidden rounded-tl-[125px] border-[4px]"
           initial={{ x: '0%' }}
-          animate={{ x: doorsAreOpening ? '-102%' : '0%' }}
+          animate={{ x: doorsAreOpening ? '-110%' : '0%' }}
           transition={{
-            duration: 1.05,
+            duration: 1.3,
             ease: [0.65, 0, 0.35, 1],
           }}
         >
-          {/* Recessed decorative panel matching the approved wireframe. */}
-          <div className="border-lift-silver-trim absolute inset-8 border-8 shadow-[inset_0_0_18px_rgba(90,97,102,0.20)]" />
+          {/* Recessed door panel */}
+          <div className="border-charcoal absolute inset-5 rounded-tl-[100px] border-[5px]" />
 
-          {/* Fine highlight along the outside edge suggests reflected light. */}
-          <div className="absolute inset-y-0 left-0 w-2 bg-white/20" />
+          {/* Decorative door rails */}
+          <div className="border-charcoal bg-honey-wood absolute inset-x-0 top-[25%] h-2 border-y-2" />
+          <div className="border-charcoal bg-honey-wood absolute inset-x-0 bottom-[8%] h-2 border-y-2" />
         </motion.div>
 
+        {/* Right elevator door */}
         <motion.div
-          className="border-lift-silver-trim absolute inset-y-0 right-0 z-[55] w-1/2 overflow-hidden border-l-2 shadow-[inset_12px_0_18px_rgba(44,44,42,0.24)]"
-          style={{
-            background: 'linear-gradient(90deg, #b6bcc1 0%, #d5d9dc 52%, #b7bdc2 100%)',
-          }}
+          className="border-charcoal bg-lift-silver-light absolute top-16 right-4 bottom-4 z-[55] w-[calc(50%_-_16px)] overflow-hidden rounded-tr-[125px] border-[4px]"
           initial={{ x: '0%' }}
-          animate={{ x: doorsAreOpening ? '102%' : '0%' }}
+          animate={{ x: doorsAreOpening ? '110%' : '0%' }}
           transition={{
-            duration: 1.05,
+            duration: 1.3,
             ease: [0.65, 0, 0.35, 1],
           }}
         >
-          <div className="border-lift-silver-trim absolute inset-8 border-8 shadow-[inset_0_0_18px_rgba(90,97,102,0.20)]" />
+          {/* Recessed door panel */}
+          <div className="border-charcoal absolute inset-5 rounded-tr-[100px] border-[5px]" />
 
-          <div className="absolute inset-y-0 right-0 w-2 bg-white/20" />
+          {/* Decorative door rails */}
+          <div className="border-charcoal bg-honey-wood absolute inset-x-0 top-[25%] h-2 border-y-2" />
+          <div className="border-charcoal bg-honey-wood absolute inset-x-0 bottom-[8%] h-2 border-y-2" />
         </motion.div>
 
-        {/*
-         * A narrow centre seam remains visible while the doors are closed. It
-         * disappears naturally once the doors slide away.
-         */}
+        {/* Centre seam disappears immediately before the doors separate. */}
         <motion.div
-          className="absolute inset-y-0 left-1/2 z-[58] w-2 -translate-x-1/2 bg-[#454b50] shadow-[0_0_12px_rgba(0,0,0,0.50)]"
+          className="bg-charcoal absolute top-16 bottom-4 left-1/2 z-[58] w-[5px] -translate-x-1/2"
           initial={{ opacity: 1 }}
           animate={{ opacity: doorsAreOpening ? 0 : 1 }}
           transition={{ duration: 0.15 }}
@@ -167,35 +234,56 @@ export default function ElevatorIntro() {
         />
 
         {/*
-         * The sign is slightly narrower than before so the recessed door
-         * details remain visible. It fades as the physical doors separate.
+         * The sign is positioned above the exact centre of the elevator.
+         * Each character animates independently to create the typing effect.
          */}
         <motion.div
-          className="border-honey-wood bg-warm-cream absolute top-1/2 left-1/2 z-[65] w-[78%] -translate-x-1/2 -translate-y-1/2 rounded-lg border px-4 py-4 text-center text-[clamp(1.1rem,3.4vw,2.6rem)] font-medium whitespace-nowrap text-black shadow-[0_8px_18px_rgba(44,44,42,0.25)]"
+          className="border-charcoal bg-warm-cream absolute top-[40%] left-1/2 z-[65] flex w-[78%] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-xl border-[5px] px-4 py-5 text-[clamp(0.9rem,2.8vw,2.3rem)] font-semibold whitespace-nowrap text-[#4b3525] shadow-[5px_5px_0_rgba(44,44,42,0.25)]"
           initial={{ opacity: 1, scale: 1 }}
           animate={{
             opacity: doorsAreOpening ? 0 : 1,
             scale: doorsAreOpening ? 0.96 : 1,
           }}
-          transition={{ duration: 0.25 }}
+          transition={{ duration: 0.3 }}
+          aria-label={ELEVATOR_TITLE}
         >
-          IBM CONSULTANCY 101
+          {Array.from(ELEVATOR_TITLE).map((character, index) => (
+            <motion.span
+              /*
+               * The index is safe here because the title is a fixed string
+               * whose character order never changes.
+               */
+              key={`${character}-${index}`}
+              className={character === ' ' ? 'w-[0.35em]' : undefined}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.28,
+                delay: index * 0.075,
+                ease: 'easeOut',
+              }}
+              aria-hidden="true"
+            >
+              {character === ' ' ? '\u00A0' : character}
+            </motion.span>
+          ))}
         </motion.div>
       </div>
 
-      {/*
-       * The call panel uses the same metallic language as the doors. The up
-       * control is illuminated because the journey is heading to floor 12.
-       */}
+      {/* Large plants grounded beside the elevator */}
+      <CartoonPlant side="left" />
+      <CartoonPlant side="right" />
+
+      {/* Elevator call-button panel */}
       <div
-        className="border-lift-silver-trim absolute top-1/2 right-[3%] z-[70] flex -translate-y-1/2 flex-col gap-3 rounded-md border-2 bg-[linear-gradient(145deg,#c8cdd1,#8b9196)] p-3 shadow-lg sm:right-[7%]"
+        className="border-charcoal bg-lift-silver-light absolute top-[45%] right-[2%] z-[70] hidden -translate-y-1/2 flex-col gap-3 border-[4px] p-3 shadow-[4px_4px_0_rgba(44,44,42,0.22)] sm:flex lg:right-[5%]"
         aria-hidden="true"
       >
-        <span className="bg-light-blue text-dark-blue flex h-8 w-8 items-center justify-center rounded-full border border-white/70 text-sm shadow-[0_0_12px_rgba(126,182,224,0.85)]">
+        <span className="border-charcoal bg-cloud-white text-charcoal flex h-9 w-9 items-center justify-center rounded-full border-[3px] text-sm">
           ▲
         </span>
 
-        <span className="bg-charcoal/80 flex h-8 w-8 items-center justify-center rounded-full border border-white/30 text-sm text-white/70">
+        <span className="border-charcoal bg-cloud-white text-charcoal flex h-9 w-9 items-center justify-center rounded-full border-[3px] text-sm">
           ▼
         </span>
       </div>

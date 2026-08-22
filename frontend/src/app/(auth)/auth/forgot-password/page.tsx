@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import AuthCard from '@/components/auth/AuthCard'
 import { resetPassword } from '@/lib/firebase/auth'
 import { resetPasswordSchema, type ResetPasswordInput } from '@/lib/validations/auth'
+import { authInputClassName, authPrimaryButtonClassName } from '@/components/auth/authStyles'
 
 export default function ForgotPasswordPage() {
   const router = useRouter()
@@ -64,7 +65,7 @@ export default function ForgotPasswordPage() {
             placeholder="you@company.com"
             aria-invalid={Boolean(errors.email)}
             aria-describedby={errors.email ? 'reset-email-error' : undefined}
-            className="border-lift-silver-dark text-charcoal placeholder:text-charcoal/45 focus:border-dark-blue h-11 w-full rounded-md border bg-white px-3 text-sm outline-none focus:ring-3 focus:ring-[var(--focus-ring)] aria-invalid:border-red-600"
+            className={authInputClassName}
             {...register('email')}
           />
 
@@ -79,11 +80,7 @@ export default function ForgotPasswordPage() {
           )}
         </div>
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="bg-building-far text-dark-blue hover:bg-light-blue flex h-11 w-full items-center justify-center rounded-lg px-4 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60"
-        >
+        <button type="submit" disabled={isSubmitting} className={authPrimaryButtonClassName}>
           {isSubmitting ? 'Sending reset link...' : 'Send reset link'}
         </button>
       </form>

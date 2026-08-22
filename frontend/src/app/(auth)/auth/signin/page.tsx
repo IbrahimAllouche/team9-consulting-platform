@@ -11,6 +11,11 @@ import ElevatorIntro from '@/components/auth/ElevatorIntro'
 import { FullPageSpinner } from '@/components/shared/LoadingSpinner'
 import { useAuth } from '@/hooks/useAuth'
 import { loginSchema, type LoginInput } from '@/lib/validations/auth'
+import {
+  authInlineLinkClassName,
+  authInputClassName,
+  authPrimaryButtonClassName,
+} from '@/components/auth/authStyles'
 
 export default function SignInPage() {
   const router = useRouter()
@@ -121,7 +126,7 @@ export default function SignInPage() {
                 placeholder="you@company.com"
                 aria-invalid={Boolean(errors.email)}
                 aria-describedby={errors.email ? 'email-error' : undefined}
-                className="border-lift-silver-dark bg-charcoal focus:border-light-blue h-11 w-full rounded-md border px-3 text-sm text-white outline-none placeholder:text-white/45 focus:ring-3 focus:ring-[var(--focus-ring)] aria-invalid:border-red-600"
+                className={authInputClassName}
                 {...register('email')}
               />
 
@@ -148,7 +153,7 @@ export default function SignInPage() {
                 placeholder="Enter your password"
                 aria-invalid={Boolean(errors.password)}
                 aria-describedby={errors.password ? 'password-error' : undefined}
-                className="border-lift-silver-dark bg-charcoal focus:border-light-blue h-11 w-full rounded-md border px-3 text-sm text-white outline-none placeholder:text-white/45 focus:ring-3 focus:ring-[var(--focus-ring)] aria-invalid:border-red-600"
+                className={authInputClassName}
                 {...register('password')}
               />
 
@@ -163,18 +168,11 @@ export default function SignInPage() {
               )}
             </div>
 
-            <Link
-              href="/auth/forgot-password"
-              className="text-charcoal hover:text-dark-blue inline-block text-sm underline underline-offset-2"
-            >
+            <Link href="/auth/forgot-password" className={authInlineLinkClassName}>
               Forgot password?
             </Link>
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="border-dark-blue/20 bg-building-far text-dark-blue hover:bg-light-blue flex h-11 w-full items-center justify-center rounded-lg border px-4 text-sm font-medium shadow-[inset_0_-2px_0_rgba(31,78,121,0.18)] transition focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
-            >
+            <button type="submit" disabled={isSubmitting} className={authPrimaryButtonClassName}>
               {isSubmitting ? 'Calling the lift...' : 'Floor 12: Enter Academy'}
             </button>
           </form>
