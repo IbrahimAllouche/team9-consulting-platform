@@ -24,12 +24,12 @@ export interface UserProfile {
 
 export interface Note {
   id: string
-  uid: string            // owner's user id — used by security rules
+  uid: string // owner's user id — used by security rules
   title: string
   body: string
   createdAt: Timestamp
   updatedAt: Timestamp
-  _schemaVersion: 1      // every document carries this — see /evolve-schema
+  _schemaVersion: 1 // every document carries this — see /evolve-schema
 }
 
 export type CreateUserProfileInput = Omit<UserProfile, 'createdAt' | 'updatedAt'>

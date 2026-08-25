@@ -1,6 +1,11 @@
+'use client'
+
 import type { CSSProperties } from 'react'
+import { useEffect, useState } from 'react'
 import Image from 'next/image'
-import { LockKeyhole } from 'lucide-react'
+import Link from 'next/link'
+import { CheckCircle2, LockKeyhole } from 'lucide-react'
+import LevelCompletionCelebration from './LevelCompletionCelebration'
 import type { ConsultingStage } from './landingData'
 
 type ConsultingRoomProps = {
@@ -16,7 +21,10 @@ const roomImageByType: Record<ConsultingStage['roomType'], string> = {
   'closing-room': '/assets/landing/rooms/closeDeal.png',
 }
 
-const roomImageDescriptionByType: Record<ConsultingStage['roomType'], string> = {
+const roomImageDescriptionByType: Record<
+  ConsultingStage['roomType'],
+  string
+> = {
   'lead-room': 'Networking tables and chairs inside the lead-finding lobby',
   'outreach-office': 'Office desk prepared for client outreach',
   'preparation-room': 'Meeting preparation desk and presentation screen',
@@ -25,15 +33,26 @@ const roomImageDescriptionByType: Record<ConsultingStage['roomType'], string> = 
   'closing-room': 'Executive seating area for closing the deal',
 }
 
-/**
- * Displays one consulting stage inside the connected dollhouse.
- *
- * Each room receives an animation delay based on its stage number, producing a
- * deliberate one-by-one reveal instead of every room appearing simultaneously.
- */
 export default function ConsultingRoom({ stage }: ConsultingRoomProps) {
-  const isActive = stage.status === 'active'
-  const isLocked = stage.status === 'locked'
+  const [levelOneJustCompleted, setLevelOneJustCompleted] = useState(false)
+
+  useEffect(() => {
+    const parameters = new URLSearchParams(window.location.search)
+    setLevelOneJustCompleted(parameters.get('completed') === 'level-1')
+  }, [])
+
+  const effectiveStatus: ConsultingStage['status'] =
+    levelOneJustCompleted && stage.id === 1
+      ? 'completed'
+      : levelOneJustCompleted && stage.id === 2
+        ? 'active'
+        : stage.status
+
+  const isActive = effectiveStatus === 'active'
+  const isCompleted = effectiveStatus === 'completed'
+  const isLocked = effectiveStatus === 'locked'
+  const isPlayable = isActive || isCompleted
+  const isNewlyUnlocked = levelOneJustCompleted && stage.id === 2
 
   const imageSource = roomImageByType[stage.roomType]
   const imageDescription = roomImageDescriptionByType[stage.roomType]
@@ -43,79 +62,102 @@ export default function ConsultingRoom({ stage }: ConsultingRoomProps) {
   } as CSSProperties
 
   return (
-    <section
-      id={`stage-${stage.id}`}
-      style={roomAnimationStyle}
-      className={`game-room border-charcoal relative min-h-80 overflow-hidden border-[4px] ${
-        isActive
-          ? 'game-room-active cursor-pointer bg-[#ffdda3]'
-          : 'game-room-locked bg-cloud-white cursor-not-allowed'
-      }`}
-      aria-labelledby={`stage-${stage.id}-title`}
-    >
-      {/* Animated light appears only over the currently playable room. */}
-      {isActive && <div className="room-light-sweep" aria-hidden="true" />}
+    <>
+      {stage.id === 2 && (
+        <LevelCompletionCelebration show={levelOneJustCompleted} />
+      )}
 
-      <div className="relative z-20 flex items-start gap-3 p-4">
-        <div className="border-charcoal bg-dark-blue flex h-14 w-12 shrink-0 items-center justify-center rounded-[35%] border-[3px] text-xl font-extrabold text-white shadow-[3px_3px_0_var(--charcoal)]">
-          {stage.id}
-        </div>
+      <section
+        id={`stage-${stage.id}`}
+        style={roomAnimationStyle}
+        className={`game-room border-charcoal relative min-h-80 overflow-hidden border-[4px] transition-all duration-500 ${
+          isPlayable
+            ? 'game-room-active cursor-pointer bg-[#ffdda3]'
+            : 'game-room-locked bg-cloud-white cursor-not-allowed'
+        } ${
+          isCompleted ? 'ring-8 ring-[#5b8c4a]/55' : ''
+        } ${
+          isNewlyUnlocked
+            ? 'z-10 animate-pulse ring-8 ring-[#c98a3e] shadow-[0_0_42px_rgba(201,138,62,0.9)]'
+            : ''
+        }`}
+        aria-labelledby={`stage-${stage.id}-title`}
+      >
+        {isActive && (
+          <div className="room-light-sweep" aria-hidden="true" />
+        )}
 
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start gap-2">
-            <h2
-              id={`stage-${stage.id}-title`}
-              className="text-charcoal text-lg leading-tight font-extrabold"
-            >
-              {stage.name}
-            </h2>
-
-            {isLocked && (
-              <LockKeyhole
-                className="room-lock text-charcoal mt-0.5 h-5 w-5 shrink-0"
-                aria-label="Locked"
-              />
+        <div className="relative z-20 flex items-start gap-3 p-4">
+          <div
+            className={`border-charcoal flex h-14 w-12 shrink-0 items-center justify-center rounded-[35%] border-[3px] text-xl font-extrabold text-white shadow-[3px_3px_0_var(--charcoal)] ${
+              isCompleted ? 'bg-plant-green' : 'bg-dark-blue'
+            }`}
+          >
+            {isCompleted ? (
+              <CheckCircle2 className="h-7 w-7" aria-label="Completed" />
+            ) : (
+              stage.id
             )}
           </div>
 
-          {isActive ? (
-            <button
-              type="button"
-              className="start-room-button border-charcoal bg-dark-blue hover:bg-building-near mt-3 rounded-lg border-[3px] px-5 py-2 text-sm font-extrabold text-white transition"
-            >
-              START HERE
-            </button>
-          ) : (
-            <p className="text-charcoal mt-2 max-w-56 text-sm leading-6">
-              {stage.shortDescription}
-            </p>
-          )}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start gap-2">
+              <h2
+                id={`stage-${stage.id}-title`}
+                className="text-charcoal text-lg leading-tight font-extrabold"
+              >
+                {stage.name}
+              </h2>
+
+              {isLocked && (
+                <LockKeyhole
+                  className="room-lock text-charcoal mt-0.5 h-5 w-5 shrink-0"
+                  aria-label="Locked"
+                />
+              )}
+            </div>
+
+            {isPlayable ? (
+              <Link
+                href={stage.href}
+                className={`start-room-button border-charcoal mt-3 inline-block rounded-lg border-[3px] px-5 py-2 text-sm font-extrabold text-white transition ${
+                  isCompleted
+                    ? 'bg-plant-green hover:bg-dark-blue'
+                    : 'bg-dark-blue hover:bg-building-near'
+                }`}
+              >
+                {isCompleted ? 'REPLAY' : isNewlyUnlocked ? 'ENTER LEVEL 2' : 'START HERE'}
+              </Link>
+            ) : (
+              <p className="text-charcoal mt-2 max-w-56 text-sm leading-6">
+                {stage.shortDescription}
+              </p>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/*
-       * The entire image scales and moves as one layer. This guarantees that
-       * furniture never changes position independently.
-       */}
-      <div
-        className={`absolute inset-x-2 top-28 bottom-2 ${isLocked ? 'opacity-65' : 'opacity-100'}`}
-      >
-        <Image
-          src={imageSource}
-          alt={imageDescription}
-          fill
-          sizes="(min-width: 1280px) 25vw, (min-width: 768px) 45vw, 90vw"
-          className="room-furniture object-contain object-bottom"
-          priority={stage.id === 1}
-        />
-      </div>
-
-      {isLocked && (
         <div
-          className="bg-warm-grey/10 pointer-events-none absolute inset-0 z-10"
-          aria-hidden="true"
-        />
-      )}
-    </section>
+          className={`absolute inset-x-2 top-28 bottom-2 ${
+            isLocked ? 'opacity-65' : 'opacity-100'
+          }`}
+        >
+          <Image
+            src={imageSource}
+            alt={imageDescription}
+            fill
+            sizes="(min-width: 1280px) 25vw, (min-width: 768px) 45vw, 90vw"
+            className="room-furniture object-contain object-bottom"
+            priority={stage.id === 1}
+          />
+        </div>
+
+        {isLocked && (
+          <div
+            className="bg-warm-grey/10 pointer-events-none absolute inset-0 z-10"
+            aria-hidden="true"
+          />
+        )}
+      </section>
+    </>
   )
 }
