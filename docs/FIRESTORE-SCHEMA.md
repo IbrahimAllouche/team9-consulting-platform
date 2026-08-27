@@ -45,5 +45,75 @@ This enables **lazy migration** — when a document is read, check `_schemaVersi
 **Deletion:** Hard-delete is disabled in security rules. Use `deletedAt` field for soft-delete.
 
 ---
+---
 
+## `personas` collection
+
+**Path:** `/personas/{personaId}`
+
+**Access:** Authenticated users can read persona definitions. Client-side writes are disabled.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | `string` | Yes | Persona identifier; matches the document ID |
+| `name` | `string` | Yes | Display name of the persona |
+| `level` | `1 \| 2` | Yes | Simulation level the persona belongs to |
+| `systemPrompt` | `string` | Yes | System prompt used by the persona API |
+| `objections` | `string[]` | Yes | Persona-specific objections/challenges |
+| `createdAt` | `Timestamp` | Yes | When the persona was created |
+| `updatedAt` | `Timestamp` | Yes | When the persona was last updated |
+| `_schemaVersion` | `1` | Yes | Schema version for lazy migration |
+
+**Security:** Persona definitions are read-only from the client. Writes must be performed through trusted server/Admin SDK code.
+
+---
+
+## `sessions` collection
+
+**Path:** `/sessions/{sessionId}`
+
+**Access:** Owner-only. Administrators may read sessions.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | `string` | Yes | Session identifier; matches the document ID |
+| `uid` | `string` | Yes | Firebase UID of the player who owns the session |
+| `personaId` | `string` | Yes | Persona used for this consulting session |
+| `level` | `1 \| 2` | Yes | Simulation level |
+| `status` | `'active' \| 'completed'` | Yes | Current session state |
+| `messages` | `Array` | Yes | Dialogue exchanged between player and persona |
+| `createdAt` | `Timestamp` | Yes | When the session started |
+| `updatedAt` | `Timestamp` | Yes | When the session was last updated |
+| `_schemaVersion` | `1` | Yes | Schema version for lazy migration |
+
+### Session message structure
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `role` | `'player' \| 'persona'` | Yes | Sender of the dialogue message |
+| `content` | `string` | Yes | Dialogue text |
+| `createdAt` | `Timestamp` | Yes | When the message was created |
+
+**Deletion:** Hard-delete is disabled.
+
+---
+
+## `portfolioProgress` collection
+
+**Path:** `/portfolioProgress/{progressId}`
+
+**Access:** Owner-only. Administrators may read progress.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | `string` | Yes | Progress document identifier |
+| `uid` | `string` | Yes | Firebase UID of the player |
+| `completedPersonaIds` | `string[]` | Yes | Personas successfully completed |
+| `completedLevels` | `number[]` | Yes | Simulation levels successfully completed |
+| `totalXp` | `number` | Yes | Player's accumulated XP |
+| `createdAt` | `Timestamp` | Yes | When progress tracking began |
+| `updatedAt` | `Timestamp` | Yes | When progress was last updated |
+| `_schemaVersion` | `1` | Yes | Schema version for lazy migration |
+
+**Deletion:** Hard-delete is disabled.
 <!-- Add new collection schemas below using the /firebase-collection skill -->
