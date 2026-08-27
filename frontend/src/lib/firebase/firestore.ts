@@ -34,6 +34,8 @@ export function getNotesCollection() {
   return typedCollection<Note>('notes')
 }
 
+
+
 export function getPersonasCollection() {
   return typedCollection<Persona>('personas')
 }
@@ -45,3 +47,4 @@ export function getSessionsCollection() {
 export function getPortfolioProgressCollection() {
   return typedCollection<PortfolioProgress>('portfolioProgress')
 }
+

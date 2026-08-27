@@ -12,14 +12,15 @@ const createNoteSchema = z.object({
 })
 
 export async function createNote(input: unknown): Promise<ActionResult<string>> {
-  const session = await requireAuth()               // 1. who is asking? (redirects if nobody)
+  const session = await requireAuth() // 1. who is asking? (redirects if nobody)
 
-  const parsed = createNoteSchema.safeParse(input)  // 2. is the input sane?
+  const parsed = createNoteSchema.safeParse(input) // 2. is the input sane?
   if (!parsed.success) {
     return { success: false, error: parsed.error.errors[0]?.message ?? 'Invalid input' }
   }
 
-  try {                                             // 3. write, and never throw at the caller
+  try {
+    // 3. write, and never throw at the caller
     const now = Timestamp.now()
     const ref = await adminDb.collection('notes').add({
       ...parsed.data,
