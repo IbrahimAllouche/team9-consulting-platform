@@ -66,6 +66,77 @@ service cloud.firestore {
                     && request.resource.data.uid == resource.data.uid;
       allow delete: if false;
     }
+        // personas/{personaId}
+    // Persona definitions are readable by authenticated users.
+    // Client-side writes are disabled so persona prompts cannot be modified
+    // by players. Persona data should be managed through trusted server/admin code.
+    match /personas/{personaId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if false;
+    }
+
+    // sessions/{sessionId}
+    // Consulting sessions belong to a single authenticated user.
+    match /sessions/{sessionId} {
+      allow read: if isAuthenticated()
+                  && (isOwner(resource.data.uid) || isAdmin());
+
+      allow create: if isAuthenticated()
+                    && isOwner(request.resource.data.uid)
+                    && request.resource.data.keys().hasAll([
+                      'id',
+                      'uid',
+                      'personaId',
+                      'level',
+                      'status',
+                      'messages',
+                      'createdAt',
+                      'updatedAt',
+                      '_schemaVersion'
+                    ])
+                    && request.resource.data._schemaVersion == 1;
+
+      allow update: if isAuthenticated()
+                    && isOwner(resource.data.uid)
+                    && request.resource.data.uid == resource.data.uid
+                    && request.resource.data.id == resource.data.id
+                    && request.resource.data._schemaVersion == 1;
+
+      allow delete: if false;
+    }
+
+    // portfolioProgress/{progressId}
+    // Each user can only access and update their own consulting progress.
+    match /portfolioProgress/{progressId} {
+      allow read: if isAuthenticated()
+                  && (isOwner(resource.data.uid) || isAdmin());
+
+      allow create: if isAuthenticated()
+                    && isOwner(request.resource.data.uid)
+                    && request.resource.data.keys().hasAll([
+                      'id',
+                      'uid',
+                      'completedPersonaIds',
+                      'completedLevels',
+                      'totalXp',
+                      'createdAt',
+                      'updatedAt',
+                      '_schemaVersion'
+                    ])
+                    && request.resource.data._schemaVersion == 1;
+
+      allow update: if isAuthenticated()
+                    && isOwner(resource.data.uid)
+                    && request.resource.data.uid == resource.data.uid
+                    && request.resource.data.id == resource.data.id
+                    && request.resource.data._schemaVersion == 1;
+
+      allow delete: if false;
+    }
+
+
+
+
 
     // Add new collection rules above this comment using the /firebase-collection skill.
 
