@@ -12,25 +12,20 @@ const confetti = Array.from({ length: 42 }, (_, index) => ({
   left: `${(index * 37) % 100}%`,
   delay: (index % 9) * 0.08,
   duration: 2.2 + (index % 5) * 0.22,
-  colour: ['#c98a3e', '#1f4e79', '#7eb6e0', '#5b8c4a', '#f4ede1'][
-    index % 5
-  ],
+  colour: ['#c98a3e', '#1f4e79', '#7eb6e0', '#5b8c4a', '#f4ede1'][index % 5],
 }))
 
-export default function LevelCompletionCelebration({
-  show,
-}: LevelCompletionCelebrationProps) {
-  const [visible, setVisible] = useState(show)
+export default function LevelCompletionCelebration({ show }: LevelCompletionCelebrationProps) {
+  const [dismissed, setDismissed] = useState(false)
+  const visible = show && !dismissed
 
   useEffect(() => {
-    setVisible(show)
-
     if (!show) {
       return
     }
 
     const timer = window.setTimeout(() => {
-      setVisible(false)
+      setDismissed(true)
     }, 5200)
 
     return () => {

@@ -6,20 +6,20 @@ import { usePathname, useRouter } from 'next/navigation'
 import { Home, Menu, User, X } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 
-/**
- * Shared navigation for the protected game pages.
- *
- * The title uses the middle column of a three-column grid so it remains
- * properly centred even though the menu and sign-out buttons have different
- * widths.
- */
 export default function LandingHeader() {
   const pathname = usePathname()
   const router = useRouter()
   const { signOut } = useAuth()
 
   const [menuIsOpen, setMenuIsOpen] = useState(false)
+
   const [isSigningOut, setIsSigningOut] = useState(false)
+
+  /*
+   * Game levels should use the full viewport.
+   * The dashboard/profile header remains unchanged.
+   */
+  const isLevelPage = pathname.startsWith('/levels/')
 
   const handleSignOut = async () => {
     try {
@@ -29,9 +29,19 @@ export default function LandingHeader() {
 
       router.replace('/auth/signin')
       router.refresh()
+    } catch (error) {
+      console.error('Sign out failed:', error)
     } finally {
       setIsSigningOut(false)
     }
+  }
+
+  /*
+   * Returning null here removes the entire IBM header
+   * from every level without removing it from dashboard.
+   */
+  if (isLevelPage) {
+    return null
   }
 
   const navigationItems = [
@@ -49,13 +59,8 @@ export default function LandingHeader() {
 
   return (
     <>
-      {/*
-       * The wooden header follows the same warm, outlined cartoon style as
-       * the elevator and authentication pages.
-       */}
       <header className="game-header border-charcoal bg-honey-wood relative z-40 grid min-h-24 grid-cols-[1fr_auto_1fr] items-center border-[5px] px-4 shadow-[0_5px_0_var(--wood-shadow)] sm:px-7">
-        {' '}
-        {/* Hamburger button */}
+        {/* Hamburger menu button */}
         <div className="flex justify-start">
           <button
             type="button"
@@ -70,13 +75,15 @@ export default function LandingHeader() {
             {menuIsOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
           </button>
         </div>
-        {/* True centred project title */}
+
+        {/* Centred application title */}
         <Link
           href="/dashboard"
           className="text-charcoal text-center text-[clamp(1.1rem,3vw,2rem)] font-extrabold tracking-wide"
         >
           IBM CONSULTANCY 101
         </Link>
+
         {/* Sign-out button */}
         <div className="flex justify-end">
           <button
@@ -90,10 +97,7 @@ export default function LandingHeader() {
         </div>
       </header>
 
-      {/*
-       * The menu slides out beneath the header. It contains only the two
-       * destinations requested for this sprint: Landing Page and Profile.
-       */}
+      {/* Navigation drawer */}
       <aside
         id="game-navigation"
         className={`border-charcoal bg-warm-cream fixed top-24 bottom-0 left-0 z-30 w-72 border-r-[5px] p-5 shadow-[6px_0_0_rgba(44,44,42,0.18)] transition-transform duration-300 ${
@@ -125,6 +129,7 @@ export default function LandingHeader() {
                 aria-current={isCurrentPage ? 'page' : undefined}
               >
                 <Icon className="h-5 w-5" aria-hidden="true" />
+
                 {item.label}
               </Link>
             )
@@ -133,17 +138,14 @@ export default function LandingHeader() {
 
         <div className="border-charcoal bg-cloud-white absolute right-5 bottom-5 left-5 rounded-xl border-[3px] p-4">
           <p className="text-dark-blue text-sm font-bold">Consulting Academy</p>
+
           <p className="text-charcoal mt-1 text-xs">
             Complete all six stages of the consulting loop.
           </p>
         </div>
       </aside>
 
-      {/*
-       * Clicking the translucent area closes the menu without navigating.
-       * It also prevents users from accidentally interacting with the page
-       * underneath an open drawer.
-       */}
+      {/* Click-away menu backdrop */}
       {menuIsOpen && (
         <button
           type="button"

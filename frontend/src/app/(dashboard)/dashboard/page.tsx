@@ -63,7 +63,7 @@ export default async function DashboardPage() {
           { left: '57%', top: '82%', size: '6px', duration: '6.5s', delay: '-5s' },
           { left: '73%', top: '27%', size: '5px', duration: '7.5s', delay: '-3s' },
           { left: '91%', top: '68%', size: '7px', duration: '8.5s', delay: '-6s' },
-        ].map((particle, index) => (
+        ].map((particle) => (
           <span
             key={`${particle.left}-${particle.top}`}
             className="lobby-particle"

@@ -1,1164 +1,1014 @@
 import Phaser from 'phaser'
+import { LevelOneEffects } from '../effects/LevelOneEffects'
 
-const WORLD_WIDTH = 1920
-const WORLD_HEIGHT = 1800
-const INTERACTION_DISTANCE = 135
+const WORLD_WIDTH = 1440
+const WORLD_HEIGHT = 720
+const FLOOR_TOP = 315
+const FLOOR_BOTTOM = 704
+const PLAYER_SPEED = 220
+const CHARACTER_WIDTH = 142
+const CHARACTER_HEIGHT = 205
 
-type ClientId = 'client-one' | 'client-two'
-
-type ClientDetails = {
-  name: string
-  role: string
-  introduction: string
-  spokenTo: boolean
+type ManagerDialogueStep = {
+  message: string
+  onContinue: () => void
 }
 
 export class LevelOneScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Image
   private manager!: Phaser.Physics.Arcade.Image
+  private effects!: LevelOneEffects
 
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
-  private movementKeys!: Record<
-    'up' | 'down' | 'left' | 'right',
-    Phaser.Input.Keyboard.Key
-  >
 
-  private interactKey!: Phaser.Input.Keyboard.Key
-  private escapeKey!: Phaser.Input.Keyboard.Key
-  private enterKey!: Phaser.Input.Keyboard.Key
-  private spaceKey!: Phaser.Input.Keyboard.Key
-
-  private progressText!: Phaser.GameObjects.Text
-  private interactionPrompt!: Phaser.GameObjects.Text
-  private dialogueContainer!: Phaser.GameObjects.Container
-  private hoverTooltip!: Phaser.GameObjects.Container
-  private minimap!: Phaser.GameObjects.Graphics
+  private wasd!: Record<'up' | 'down' | 'left' | 'right', Phaser.Input.Keyboard.Key>
 
   private controlsEnabled = false
-  private dialogueOpen = false
-  private unlockControlsAfterDialogue = false
-  private levelCompleted = false
-  private nearbyClientId: ClientId | null = null
-  private pendingClientCompletion: ClientId | null = null
-  private exitUnlocked = false
-  private nearExit = false
-  private unlockExitAfterDialogue = false
-  private exitSequenceStarted = false
+  private interfaceOpen = false
 
-  private clientSprites = new Map<
-    ClientId,
-    Phaser.Physics.Arcade.Image
-  >()
+  private homeButton!: Phaser.GameObjects.Container
+  private notebookButton!: Phaser.GameObjects.Container
 
-  private clients: Record<ClientId, ClientDetails> = {
-    'client-one': {
-      name: 'Alex Morgan',
-      role: 'Operations Manager',
-      introduction:
-        'Our teams are losing time because several important processes still rely on manual spreadsheets.',
-      spokenTo: false,
-    },
-    'client-two': {
-      name: 'Jordan Lee',
-      role: 'Customer Experience Lead',
-      introduction:
-        'Customer enquiries are increasing, but our current support process is struggling to keep up.',
-      spokenTo: false,
-    },
-  }
+  private managerPanel?: Phaser.GameObjects.Container
+  private managerReplyInput?: Phaser.GameObjects.DOMElement
+  private menuPanel?: Phaser.GameObjects.Container
+  private notebookPanel?: Phaser.GameObjects.Container
+  private notebookInput?: Phaser.GameObjects.DOMElement
+
+  private interfaceCamera!: Phaser.Cameras.Scene2D.Camera
+  private obstacleZones: Phaser.GameObjects.Zone[] = []
+
+  private notes = ''
 
   constructor() {
     super('LevelOneScene')
   }
 
-  preload() {
-    this.load.image(
-      'player',
-      '/assets/characters/npcs/character-04.png'
-    )
-    this.load.image(
-      'manager',
-      '/assets/characters/npcs/character-01.png'
-    )
-    this.load.image(
-      'client-one',
-      '/assets/characters/npcs/character-02.png'
-    )
-    this.load.image(
-      'client-two',
-      '/assets/characters/npcs/character-03.png'
-    )
+  preload(): void {
+    this.load.image('player', '/assets/characters/npcs/character-03.png')
 
-    this.load.image(
-      'door-frame',
-      '/assets/game/shared/doors/door-frame.png'
-    )
-    this.load.image(
-      'door-left',
-      '/assets/game/shared/doors/door-left.png'
-    )
-    this.load.image(
-      'door-right',
-      '/assets/game/shared/doors/door-right.png'
-    )
-    this.load.image(
-      'plant',
-      '/assets/game/shared/plants/plant-round.png'
-    )
-    this.load.image(
-      'meeting-table',
-      '/assets/game/level-1/furniture/meeting-table-small.png'
-    )
-    this.load.image(
-      'chair',
-      '/assets/game/level-1/furniture/chair-blue.png'
-    )
+    this.load.image('manager', '/assets/characters/npcs/character-04.png')
+
+    this.load.image('good-client', '/assets/characters/npcs/character-01.png')
+
+    this.load.image('bad-client', '/assets/characters/npcs/character-02.png')
+
+    this.load.image('round-table', '/assets/game/level-1/furniture/level-one-round-table.png')
+
+    this.load.image('couch', '/assets/game/level-1/furniture/level-one-couch.png')
+
+    this.load.image('plant', '/assets/game/level-1/furniture/level-one-plant.png')
   }
 
-  create() {
-    this.physics.world.setBounds(
-      0,
-      0,
-      WORLD_WIDTH,
-      WORLD_HEIGHT
-    )
-    this.cameras.main.setBounds(
-      0,
-      0,
-      WORLD_WIDTH,
-      WORLD_HEIGHT
-    )
+  create(): void {
+    this.physics.world.setBounds(0, FLOOR_TOP, WORLD_WIDTH, FLOOR_BOTTOM - FLOOR_TOP)
 
-    this.createRoomShell()
-    this.configureKeyboard()
+    this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
 
-    // The player must exist before any colliders are registered.
-    this.createPlayer()
+    this.cameras.main.setBackgroundColor('#efe1c7')
+
+    this.effects = new LevelOneEffects(this)
+
+    this.createRoom()
     this.createFurniture()
+    this.createPlayer()
     this.createCharacters()
+    this.createCollisions()
+
+    this.effects.addCharacterShadow(this.player, 76)
+    this.effects.addCharacterShadow(this.manager, 72)
+    this.effects.addIdleBreathing(this.manager, 200)
+
+    this.effects.addWindowAmbience(295, 1145, 165)
+
+    this.effects.playElevatorSweep(WORLD_WIDTH / 2, WORLD_HEIGHT)
+
+    /*
+     * These are the objects that belong to the room.
+     * The separate interface camera ignores them.
+     */
+    const worldObjects = [...this.children.list]
+
+    this.configureKeyboard()
     this.createInterface()
-    this.createPhysicalEntrance()
-    this.startEntranceCinematic()
+    this.createInterfaceCamera(worldObjects)
+    this.startArrivalSequence()
   }
 
-  override update(time: number) {
-    this.updateDepths()
-    this.positionInterfaceOnCamera()
-    this.updateMinimap()
+  override update(): void {
+    if (!this.player) {
+      return
+    }
 
-    if (this.dialogueOpen) {
+    if (!this.controlsEnabled || this.interfaceOpen) {
       this.player.setVelocity(0)
+      this.player.setAngle(0)
 
-      const keyboardCloseRequested =
-        Phaser.Input.Keyboard.JustDown(this.escapeKey) ||
-        Phaser.Input.Keyboard.JustDown(this.enterKey) ||
-        Phaser.Input.Keyboard.JustDown(this.spaceKey)
-
-      if (keyboardCloseRequested) {
-        this.closeDialogue()
-      }
+      this.effects.updateWalking(this.player, false, this.time.now)
 
       return
     }
 
-    if (!this.controlsEnabled) {
-      this.player.setVelocity(0)
-      return
-    }
-
-    this.updateMovement(time)
-    this.updateNearbyClient()
-    this.updateExitInteraction()
-
-    if (Phaser.Input.Keyboard.JustDown(this.interactKey)) {
-      if (this.nearExit) {
-        this.startExitCinematic()
-      } else if (this.nearbyClientId) {
-        this.speakToClient(this.nearbyClientId)
-      }
-    }
+    this.updateMovement()
+    this.updateCharacterDepths()
   }
 
-  private createRoomShell() {
-    this.cameras.main.setBackgroundColor('#f4ede1')
+  private configureKeyboard(): void {
+    const keyboard = this.input.keyboard
 
-    this.add
-      .rectangle(
-        WORLD_WIDTH / 2,
-        WORLD_HEIGHT / 2,
-        WORLD_WIDTH,
-        WORLD_HEIGHT,
-        0xf4ede1
-      )
-      .setDepth(-1000)
-
-    const floor = this.add.graphics().setDepth(-999)
-
-    // Neutral cream floor until the approved Level 1 map is designed.
-    // Subtle lines provide movement reference without a checkerboard.
-    const tileSize = 96
-    floor.lineStyle(1, 0xc98a3e, 0.08)
-    for (let x = 0; x <= WORLD_WIDTH; x += tileSize) {
-      floor.lineBetween(x, 0, x, WORLD_HEIGHT)
-    }
-    for (let y = 0; y <= WORLD_HEIGHT; y += tileSize) {
-      floor.lineBetween(0, y, WORLD_WIDTH, y)
+    if (!keyboard) {
+      throw new Error('Keyboard controls are unavailable.')
     }
 
-    const architecture = this.add.graphics().setDepth(-980)
+    this.input.setTopOnly(true)
+    this.cursors = keyboard.createCursorKeys()
 
-    architecture.fillStyle(0x1f4e79)
-    architecture.fillRect(0, 0, WORLD_WIDTH, 72)
-    architecture.fillRect(0, 0, 48, WORLD_HEIGHT)
-    architecture.fillRect(
-      WORLD_WIDTH - 48,
-      0,
-      48,
-      WORLD_HEIGHT
-    )
-
-    architecture.fillStyle(0xc98a3e)
-    architecture.fillRect(0, 72, WORLD_WIDTH, 18)
-
-    // Stylised office windows along the top wall.
-    architecture.fillStyle(0x7eb6e0, 0.75)
-    architecture.fillRoundedRect(180, 18, 420, 38, 12)
-    architecture.fillRoundedRect(750, 18, 420, 38, 12)
-    architecture.fillRoundedRect(1320, 18, 420, 38, 12)
-
-    architecture.lineStyle(7, 0x2c2c2a)
-    architecture.strokeRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
-  }
-
-  private configureKeyboard() {
-    this.cursors = this.input.keyboard!.createCursorKeys()
-    this.movementKeys = this.input.keyboard!.addKeys({
+    this.wasd = keyboard.addKeys({
       up: 'W',
       down: 'S',
       left: 'A',
       right: 'D',
-    }) as Record<
-      'up' | 'down' | 'left' | 'right',
-      Phaser.Input.Keyboard.Key
-    >
-
-    this.interactKey = this.input.keyboard!.addKey(
-      Phaser.Input.Keyboard.KeyCodes.E
-    )
-    this.escapeKey = this.input.keyboard!.addKey(
-      Phaser.Input.Keyboard.KeyCodes.ESC
-    )
-    this.enterKey = this.input.keyboard!.addKey(
-      Phaser.Input.Keyboard.KeyCodes.ENTER
-    )
-    this.spaceKey = this.input.keyboard!.addKey(
-      Phaser.Input.Keyboard.KeyCodes.SPACE
-    )
+    }) as typeof this.wasd
   }
 
-  private createPlayer() {
-    this.player = this.physics.add
-      .image(
-        WORLD_WIDTH / 2,
-        WORLD_HEIGHT - 145,
-        'player'
-      )
-      .setDisplaySize(82, 110)
+  private createInterfaceCamera(worldObjects: Phaser.GameObjects.GameObject[]): void {
+    this.interfaceCamera = this.cameras.add(
+      0,
+      0,
+      WORLD_WIDTH,
+      WORLD_HEIGHT,
+      false,
+      'InterfaceCamera'
+    )
 
-    this.player.setCollideWorldBounds(true)
+    this.interfaceCamera.setBackgroundColor('rgba(0, 0, 0, 0)')
+
+    this.interfaceCamera.ignore(worldObjects)
+
+    this.cameras.main.ignore([this.homeButton, this.notebookButton])
+  }
+
+  private createRoom(): void {
+    this.add
+      .rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, 0xefe1c7)
+      .setDepth(0)
+
+    const room = this.add.graphics().setDepth(1)
+
+    room.fillStyle(0x2c2c2a)
+    room.fillRect(0, 0, WORLD_WIDTH, 10)
+    room.fillRect(0, 0, 10, WORLD_HEIGHT)
+    room.fillRect(WORLD_WIDTH - 10, 0, 10, WORLD_HEIGHT)
+    room.fillRect(0, WORLD_HEIGHT - 10, WORLD_WIDTH, 10)
+
+    room.fillStyle(0x956127)
+
+    room.fillRect(10, FLOOR_TOP - 6, WORLD_WIDTH - 20, 12)
+
+    this.createWindow(295, 165)
+    this.createWindow(1145, 165)
+    this.createBanner()
+    this.createElevatorThreshold()
+  }
+
+  private createWindow(x: number, y: number): void {
+    const graphics = this.add.graphics().setDepth(2)
+
+    graphics.fillStyle(0xc7e5f3)
+    graphics.fillRect(x - 155, y - 78, 310, 156)
+
+    graphics.lineStyle(5, 0x2c2c2a)
+    graphics.strokeRect(x - 155, y - 78, 310, 156)
+    graphics.lineBetween(x, y - 78, x, y + 78)
+    graphics.lineBetween(x - 155, y, x + 155, y)
+  }
+
+  private createBanner(): void {
+    this.add
+      .rectangle(WORLD_WIDTH / 2, 105, 500, 90, 0x477493)
+      .setStrokeStyle(5, 0x2c2c2a)
+      .setDepth(3)
+
+    this.add
+      .text(WORLD_WIDTH / 2, 105, 'Find a Lead', {
+        color: '#ffffff',
+        fontFamily: 'Arial',
+        fontSize: '38px',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5)
+      .setDepth(4)
+  }
+
+  private createElevatorThreshold(): void {
+    const graphics = this.add.graphics().setDepth(8)
+    const centreX = WORLD_WIDTH / 2
+
+    graphics.fillStyle(0x2c2c2a)
+
+    graphics.fillRect(centreX - 185, WORLD_HEIGHT - 22, 370, 22)
+
+    graphics.fillStyle(0xc99712)
+
+    graphics.fillRoundedRect(centreX - 185, WORLD_HEIGHT - 25, 370, 16, 7)
+  }
+
+  private createFurniture(): void {
+    this.add
+      .image(WORLD_WIDTH / 2, 282, 'couch')
+      .setDisplaySize(525, 155)
+      .setDepth(282)
+
+    this.addTable(155, 405)
+    this.addTable(525, 405)
+    this.addTable(340, 570)
+    this.addTable(965, 570)
+
+    const plant = this.add.image(1135, 285, 'plant').setDisplaySize(155, 180).setDepth(285)
+
+    this.effects.addPlantSway(plant)
+
+    this.addObstacle(640, 295, 510, 78)
+    this.addObstacle(155, 420, 150, 82)
+    this.addObstacle(525, 420, 150, 82)
+    this.addObstacle(340, 585, 150, 82)
+    this.addObstacle(965, 585, 150, 82)
+    this.addObstacle(1135, 300, 115, 95)
+  }
+
+  private addTable(x: number, y: number): void {
+    this.add.image(x, y, 'round-table').setDisplaySize(210, 185).setDepth(y)
+  }
+
+  private addObstacle(x: number, y: number, width: number, height: number): void {
+    const zone = this.add.zone(x, y, width, height)
+
+    this.physics.add.existing(zone, true)
+    this.obstacleZones.push(zone)
+  }
+
+  private createPlayer(): void {
+    this.player = this.physics.add
+      .image(WORLD_WIDTH / 2, FLOOR_BOTTOM - 65, 'player')
+      .setDisplaySize(CHARACTER_WIDTH, CHARACTER_HEIGHT)
+      .setCollideWorldBounds(true)
+      .setVisible(false)
+
+    const body = this.player.body as Phaser.Physics.Arcade.Body
+
+    body.setSize(this.player.width * 0.42, this.player.height * 0.22)
+
+    body.setOffset(this.player.width * 0.29, this.player.height * 0.74)
+
     this.player.setDepth(this.player.y)
   }
 
-  private createFurniture() {
-    this.createMeetingArea(480, 500)
-    this.createMeetingArea(1440, 500)
-    this.createMeetingArea(960, 860)
-
-    this.createPlant(125, 150)
-    this.createPlant(WORLD_WIDTH - 125, 150)
-    this.createPlant(125, WORLD_HEIGHT - 240)
-    this.createPlant(WORLD_WIDTH - 125, WORLD_HEIGHT - 240)
-    this.createPlant(330, 1120)
-    this.createPlant(WORLD_WIDTH - 330, 1120)
-  }
-
-  private createMeetingArea(x: number, y: number) {
-    const table = this.physics.add
-      .staticImage(x, y, 'meeting-table')
-      .setDisplaySize(275, 258)
-      .setDepth(y)
-
-    table.refreshBody()
-    this.physics.add.collider(this.player, table)
-
-    // The source chair faces downward at angle 0.
-    // Each rotation below turns it toward the nearby table.
-    const chairs = [
-      { x, y: y - 180, angle: 0 },
-      { x, y: y + 190, angle: 180 },
-      { x: x - 190, y: y + 5, angle: -90 },
-      { x: x + 190, y: y + 5, angle: 90 },
-    ]
-
-    for (const chairData of chairs) {
-      this.add
-        .image(chairData.x, chairData.y, 'chair')
-        .setDisplaySize(70, 78)
-        .setAngle(chairData.angle)
-        .setDepth(chairData.y)
-    }
-  }
-
-  private createPlant(x: number, y: number) {
-    const plant = this.physics.add
-      .staticImage(x, y, 'plant')
-      .setDisplaySize(112, 112)
-      .setDepth(y)
-
-    plant.refreshBody()
-    this.physics.add.collider(this.player, plant)
-  }
-
-  private createCharacters() {
+  private createCharacters(): void {
     this.manager = this.physics.add
-      .image(
-        WORLD_WIDTH / 2 - 260,
-        1050,
-        'manager'
-      )
-      .setDisplaySize(82, 110)
+      .image(760, 430, 'manager')
+      .setDisplaySize(CHARACTER_WIDTH, CHARACTER_HEIGHT)
       .setImmovable(true)
 
+    const managerBody = this.manager.body as Phaser.Physics.Arcade.Body
+
+    managerBody.setSize(this.manager.width * 0.44, this.manager.height * 0.2)
+
+    managerBody.setOffset(this.manager.width * 0.28, this.manager.height * 0.76)
+
+    this.manager.setDepth(this.manager.y)
+
+    const goodClient = this.physics.add
+      .staticImage(270, 470, 'good-client')
+      .setDisplaySize(CHARACTER_WIDTH, CHARACTER_HEIGHT)
+      .setDepth(470)
+      .refreshBody()
+
+    const badClient = this.physics.add
+      .staticImage(1050, 470, 'bad-client')
+      .setDisplaySize(CHARACTER_WIDTH, CHARACTER_HEIGHT)
+      .setDepth(470)
+      .refreshBody()
+
+    this.effects.addIdleBreathing(goodClient, 500)
+
+    this.effects.addIdleBreathing(badClient, 900)
+
+    /*
+     * Clients are still visual placeholders only.
+     * There is no client dialogue or E interaction here.
+     */
+    this.addObstacle(270, 545, 55, 35)
+    this.addObstacle(1050, 545, 55, 35)
+  }
+
+  private createCollisions(): void {
+    for (const obstacle of this.obstacleZones) {
+      this.physics.add.collider(this.player, obstacle)
+    }
+
     this.physics.add.collider(this.player, this.manager)
-
-    const clientOne = this.physics.add
-      .staticImage(620, 1040, 'client-one')
-      .setDisplaySize(82, 110)
-    clientOne.refreshBody()
-
-    const clientTwo = this.physics.add
-      .staticImage(1310, 1010, 'client-two')
-      .setDisplaySize(82, 110)
-    clientTwo.refreshBody()
-
-    this.clientSprites.set('client-one', clientOne)
-    this.clientSprites.set('client-two', clientTwo)
-
-    this.physics.add.collider(this.player, clientOne)
-    this.physics.add.collider(this.player, clientTwo)
-
-    this.configureNpcHover(
-      this.manager,
-      'Manager',
-      'Your IBM manager and guide'
-    )
-    this.configureNpcHover(
-      clientOne,
-      this.clients['client-one'].name,
-      this.clients['client-one'].role
-    )
-    this.configureNpcHover(
-      clientTwo,
-      this.clients['client-two'].name,
-      this.clients['client-two'].role
-    )
   }
 
-  private createPhysicalEntrance() {
-    const x = WORLD_WIDTH / 2
-    const y = WORLD_HEIGHT - 72
+  private createInterface(): void {
+    this.homeButton = this.createHomeButton()
+    this.notebookButton = this.createNotebookButton()
 
-    this.add
-      .image(x, y, 'door-frame')
-      .setDisplaySize(340, 185)
-      .setDepth(WORLD_HEIGHT + 30)
-    this.add
-      .image(x - 65, y + 10, 'door-left')
-      .setDisplaySize(130, 160)
-      .setDepth(WORLD_HEIGHT + 20)
-    this.add
-      .image(x + 65, y + 10, 'door-right')
-      .setDisplaySize(130, 160)
-      .setDepth(WORLD_HEIGHT + 20)
+    this.homeButton.setVisible(false)
+    this.notebookButton.setVisible(false)
   }
 
-  private startEntranceCinematic() {
-    const camera = this.cameras.main
-    const screenWidth = camera.width
-    const screenHeight = camera.height
+  private createHomeButton(): Phaser.GameObjects.Container {
+    const container = this.add
+      .container(44, WORLD_HEIGHT - 45)
+      .setScrollFactor(0)
+      .setDepth(5000)
 
-    camera.setZoom(1.72)
-    // Force the camera to the entrance before measuring its world view.
-    // Without this, the full-screen door overlay can be placed off-camera.
-    camera.centerOn(this.player.x, this.player.y)
-    camera.startFollow(this.player, true, 0.1, 0.1)
+    const hitArea = this.add.circle(0, 0, 31, 0x5b8c4a).setStrokeStyle(3, 0x2c2c2a).setInteractive({
+      useHandCursor: true,
+    })
 
-    // The overlay is drawn in screen-sized local coordinates and then
-    // positioned over the current camera view.
-    const overlay = this.add
-      .container(0, 0)
-      .setDepth(30000)
+    this.effects.addButtonHover(hitArea)
 
-    const darkness = this.add
-      .rectangle(
-        0,
-        0,
-        screenWidth,
-        screenHeight,
-        0x111820
-      )
-      .setOrigin(0)
+    const house = this.add.graphics()
 
-    // These are intentionally taller than the viewport. They slide away
-    // without changing scale, so they remain recognisable doors.
-    const leftDoor = this.add
-      .image(-45, screenHeight / 2, 'door-left')
-      .setOrigin(0, 0.5)
-      .setDisplaySize(
-        screenWidth / 2 + 90,
-        screenHeight * 1.22
-      )
+    house.lineStyle(4, 0x1d2b1a)
+    house.strokeTriangle(-15, -3, 0, -17, 15, -3)
+    house.strokeRect(-12, -3, 24, 21)
+    house.strokeRect(-4, 7, 8, 11)
 
-    const rightDoor = this.add
-      .image(
-        screenWidth + 45,
-        screenHeight / 2,
-        'door-right'
-      )
-      .setOrigin(1, 0.5)
-      .setDisplaySize(
-        screenWidth / 2 + 90,
-        screenHeight * 1.22
-      )
+    hitArea.on('pointerdown', () => {
+      this.effects.pressButton(hitArea)
+      this.openHomeMenu()
+    })
 
-    const upperFrame = this.add
-      .rectangle(
-        screenWidth / 2,
-        22,
-        screenWidth,
-        44,
-        0x1f4e79
-      )
-      .setStrokeStyle(7, 0x2c2c2a)
+    container.add([hitArea, house])
 
-    const centreSeam = this.add
-      .rectangle(
-        screenWidth / 2,
-        screenHeight / 2,
-        10,
-        screenHeight,
-        0x2c2c2a
-      )
+    return container
+  }
 
-    overlay.add([
-      darkness,
-      leftDoor,
-      rightDoor,
-      upperFrame,
-      centreSeam,
-    ])
+  private createNotebookButton(): Phaser.GameObjects.Container {
+    const container = this.add
+      .container(112, WORLD_HEIGHT - 45)
+      .setScrollFactor(0)
+      .setDepth(5000)
 
-    this.positionScreenOverlay(overlay)
+    const hitArea = this.add.circle(0, 0, 31, 0x2c2c2a).setStrokeStyle(3, 0x000000).setInteractive({
+      useHandCursor: true,
+    })
 
-    this.time.delayedCall(900, () => {
-      this.tweens.add({
-        targets: leftDoor,
-        x: -screenWidth / 2 - 160,
-        duration: 1850,
-        ease: 'Cubic.easeInOut',
-      })
+    this.effects.addButtonHover(hitArea)
+
+    const paper = this.add.rectangle(0, 0, 24, 31, 0xf7fafc).setStrokeStyle(2, 0x2c2c2a)
+
+    const lines = this.add.graphics()
+    lines.lineStyle(1, 0x777777)
+
+    for (let y = -10; y <= 10; y += 5) {
+      lines.lineBetween(-8, y, 8, y)
+    }
+
+    hitArea.on('pointerdown', () => {
+      this.effects.pressButton(hitArea)
+      this.openNotebook()
+    })
+
+    container.add([hitArea, paper, lines])
+
+    return container
+  }
+
+  private startArrivalSequence(): void {
+    this.controlsEnabled = false
+    this.interfaceOpen = true
+
+    this.time.delayedCall(4550, () => {
+      this.player.setVisible(true)
+
+      this.effects.playArrivalReveal(WORLD_WIDTH, WORLD_HEIGHT)
 
       this.tweens.add({
-        targets: rightDoor,
-        x: screenWidth * 1.5 + 160,
-        duration: 1850,
-        ease: 'Cubic.easeInOut',
-      })
+        targets: this.player,
+        y: 590,
+        duration: 1900,
+        ease: 'Sine.easeInOut',
 
-      this.tweens.add({
-        targets: centreSeam,
-        alpha: 0,
-        duration: 350,
-      })
-
-      this.tweens.add({
-        targets: [darkness, upperFrame],
-        alpha: 0,
-        duration: 1100,
-        delay: 500,
         onComplete: () => {
-          overlay.destroy(true)
-          this.walkPlayerIntoRoom()
+          this.managerApproachesPlayer()
         },
       })
     })
   }
 
-  private positionScreenOverlay(
-    overlay: Phaser.GameObjects.Container
-  ) {
-    const camera = this.cameras.main
-    const inverseZoom = 1 / camera.zoom
-
-    overlay
-      .setScale(inverseZoom)
-      .setPosition(
-        camera.worldView.left,
-        camera.worldView.top
-      )
-  }
-
-  private walkPlayerIntoRoom() {
-    const camera = this.cameras.main
-
-    const walkingBob = this.tweens.add({
-      targets: this.player,
-      angle: {
-        from: -2.5,
-        to: 2.5,
-      },
-      duration: 240,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
-    })
-
+  private managerApproachesPlayer(): void {
     this.tweens.add({
-      targets: this.player,
-      y: 1280,
-      duration: 4300,
-      ease: 'Sine.easeInOut',
-      onUpdate: () => {
-        this.player.setDepth(this.player.y)
-      },
-      onComplete: () => {
-        walkingBob.stop()
-        this.player.setAngle(0)
-        this.walkManagerToPlayer()
-      },
-    })
-
-    this.tweens.add({
-      targets: camera,
-      zoom: 1.38,
-      duration: 4300,
-      ease: 'Sine.easeInOut',
-    })
-  }
-
-  private walkManagerToPlayer() {
-    const managerBob = this.tweens.add({
       targets: this.manager,
-      angle: {
-        from: -2,
-        to: 2,
-      },
-      duration: 250,
-      yoyo: true,
-      repeat: -1,
+      x: this.player.x + 125,
+      y: this.player.y - 85,
+      duration: 1600,
       ease: 'Sine.easeInOut',
+
+      onComplete: () => {
+        this.homeButton.setVisible(true)
+        this.notebookButton.setVisible(true)
+
+        /*
+         * TEST MANAGER DIALOGUE 1.
+         */
+        this.showManagerPanel({
+          message: 'Welcome! This is temporary manager test dialogue.',
+
+          onContinue: () => {
+            this.managerLeadsPlayer()
+          },
+        })
+      },
     })
+  }
+
+  private managerLeadsPlayer(): void {
+    this.interfaceOpen = true
 
     this.tweens.add({
       targets: this.manager,
-      x: this.player.x - 105,
-      y: this.player.y - 130,
-      duration: 2300,
+      x: 760,
+      y: 430,
+      duration: 1900,
       ease: 'Sine.easeInOut',
-      onUpdate: () => {
-        this.manager.setDepth(this.manager.y)
-      },
+    })
+
+    this.tweens.add({
+      targets: this.player,
+      x: 640,
+      y: 515,
+      duration: 1900,
+      ease: 'Sine.easeInOut',
+
       onComplete: () => {
-        managerBob.stop()
-        this.manager.setAngle(0)
+        /*
+         * TEST MANAGER DIALOGUE 2.
+         */
+        this.showManagerPanel({
+          message: 'Hi again! You can now explore the room using WASD or the arrow keys.',
 
-        this.openDialogue(
-          'Manager',
-          'Welcome to IBM Consultancy 101! Explore the networking room, learn about each potential client and speak to everyone before continuing.',
-          true
-        )
+          onContinue: () => {
+            this.interfaceOpen = false
+            this.controlsEnabled = true
+          },
+        })
       },
     })
   }
 
-  private updateMovement(time: number) {
-    const speed = 235
+  private zoomToManager(): void {
+    this.cameras.main.pan(this.manager.x + 155, this.manager.y, 650, 'Sine.easeInOut')
 
-    this.player.setVelocity(0)
+    this.cameras.main.zoomTo(1.75, 650, 'Sine.easeInOut')
 
-    const left =
-      this.cursors.left.isDown ||
-      this.movementKeys.left.isDown
-    const right =
-      this.cursors.right.isDown ||
-      this.movementKeys.right.isDown
-    const up =
-      this.cursors.up.isDown ||
-      this.movementKeys.up.isDown
-    const down =
-      this.cursors.down.isDown ||
-      this.movementKeys.down.isDown
-
-    if (left) {
-      this.player.setVelocityX(-speed)
-    } else if (right) {
-      this.player.setVelocityX(speed)
-    }
-
-    if (up) {
-      this.player.setVelocityY(-speed)
-    } else if (down) {
-      this.player.setVelocityY(speed)
-    }
-
-    this.player.body?.velocity.normalize().scale(speed)
-
-    const isMoving = left || right || up || down
-
-    if (isMoving) {
-      // The current character is a single image rather than a walk-cycle
-      // sprite sheet, so a small alternating lean adds a walking motion.
-      this.player.setAngle(Math.sin(time / 85) * 2.6)
-    } else {
-      this.player.setAngle(0)
-    }
+    this.effects.showDialogueVignette(WORLD_WIDTH, WORLD_HEIGHT, this.cameras.main)
   }
 
-  private updateDepths() {
-    this.player?.setDepth(this.player.y)
-    this.manager?.setDepth(this.manager.y)
+  private restoreRoomCamera(onComplete: () => void): void {
+    this.effects.hideDialogueVignette()
 
-    for (const sprite of this.clientSprites.values()) {
-      sprite.setDepth(sprite.y)
-    }
+    this.cameras.main.pan(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 500, 'Sine.easeInOut')
+
+    this.cameras.main.zoomTo(1, 500, 'Sine.easeInOut')
+
+    this.time.delayedCall(520, onComplete)
   }
 
-  private createInterface() {
-    this.progressText = this.add
-      .text(0, 0, 'Clients: 0 / 2', {
-        color: '#1f4e79',
-        backgroundColor: '#f7fafc',
+  private showManagerPanel({ message, onContinue }: ManagerDialogueStep): void {
+    this.closeManagerPanel()
+
+    this.interfaceOpen = true
+    this.controlsEnabled = false
+
+    this.zoomToManager()
+
+    const panelWidth = 470
+    const panelLeft = WORLD_WIDTH - panelWidth - 12
+
+    const panelX = panelLeft + panelWidth / 2
+
+    const panel = this.add.container(0, 0).setScrollFactor(0).setDepth(6000)
+
+    const panelBody = this.add
+      .rectangle(panelX, WORLD_HEIGHT / 2, panelWidth, WORLD_HEIGHT - 28, 0xf4f7f9)
+      .setStrokeStyle(4, 0x111111)
+
+    const header = this.add
+      .rectangle(panelX, 66, panelWidth, 90, 0xb98900)
+      .setStrokeStyle(4, 0x111111)
+
+    const title = this.add
+      .text(panelX, 66, 'Your Manager', {
+        color: '#111111',
         fontFamily: 'Arial',
-        fontSize: '15px',
-        fontStyle: 'bold',
-        padding: {
-          x: 11,
-          y: 8,
-        },
-      })
-      .setStroke('#2c2c2a', 1)
-      .setDepth(20000)
-      .setVisible(false)
-
-    this.interactionPrompt = this.add
-      .text(0, 0, 'Press E to speak', {
-        color: '#ffffff',
-        backgroundColor: '#1f4e79',
-        fontFamily: 'Arial',
-        fontSize: '16px',
-        fontStyle: 'bold',
-        padding: {
-          x: 14,
-          y: 8,
-        },
-      })
-      .setOrigin(0.5)
-      .setDepth(20000)
-      .setVisible(false)
-
-    this.hoverTooltip = this.add
-      .container(0, 0)
-      .setDepth(15000)
-      .setVisible(false)
-
-    this.dialogueContainer = this.add
-      .container(0, 0)
-      .setDepth(25000)
-      .setVisible(false)
-
-    this.minimap = this.add
-      .graphics()
-      .setDepth(20000)
-      .setVisible(false)
-  }
-
-  private positionInterfaceOnCamera() {
-    const camera = this.cameras.main
-    const inverseZoom = 1 / camera.zoom
-    const view = camera.worldView
-
-    this.progressText
-      ?.setScale(inverseZoom)
-      .setPosition(
-        view.left + 18 * inverseZoom,
-        view.top + 18 * inverseZoom
-      )
-
-    this.interactionPrompt
-      ?.setScale(inverseZoom)
-      .setPosition(
-        view.centerX,
-        view.bottom - 38 * inverseZoom
-      )
-
-    this.minimap
-      ?.setScale(inverseZoom)
-      .setPosition(
-        view.right - 154 * inverseZoom,
-        view.top + 16 * inverseZoom
-      )
-
-    if (this.dialogueContainer?.visible) {
-      this.dialogueContainer
-        .setScale(inverseZoom)
-        .setPosition(
-          view.centerX,
-          view.bottom - 112 * inverseZoom
-        )
-    }
-  }
-
-  private configureNpcHover(
-    npc: Phaser.Physics.Arcade.Image,
-    name: string,
-    role: string
-  ) {
-    npc.setInteractive({ useHandCursor: true })
-
-    npc.on('pointerover', () => {
-      this.showTooltip(npc.x, npc.y - 92, name, role)
-    })
-    npc.on('pointerout', () => {
-      this.hoverTooltip.setVisible(false)
-    })
-  }
-
-  private showTooltip(
-    x: number,
-    y: number,
-    name: string,
-    role: string
-  ) {
-    this.hoverTooltip.removeAll(true)
-
-    const background = this.add
-      .rectangle(0, 0, 235, 74, 0xf7fafc, 0.98)
-      .setStrokeStyle(4, 0x2c2c2a)
-    const nameText = this.add
-      .text(0, -14, name, {
-        color: '#1f4e79',
-        fontFamily: 'Arial',
-        fontSize: '16px',
+        fontSize: '26px',
         fontStyle: 'bold',
       })
       .setOrigin(0.5)
-    const roleText = this.add
-      .text(0, 13, role, {
+
+    const managerAvatarBorder = this.add.circle(panelLeft + 52, 160, 31, 0x2c2c2a)
+
+    const managerAvatar = this.add.image(panelLeft + 52, 162, 'manager').setDisplaySize(47, 68)
+
+    const managerBubble = this.add
+      .rectangle(panelLeft + 270, 185, 330, 125, 0xf4f7f9)
+      .setStrokeStyle(2, 0xa1a7ad)
+
+    const managerText = this.add.text(managerBubble.x - 145, managerBubble.y - 48, message, {
+      color: '#2c2c2a',
+      fontFamily: 'Arial',
+      fontSize: '17px',
+      lineSpacing: 6,
+      wordWrap: {
+        width: 290,
+      },
+    })
+
+    const playerAvatarBorder = this.add
+      .circle(panelLeft + panelWidth - 52, 385, 31, 0x2c2c2a)
+      .setVisible(false)
+
+    const playerAvatar = this.add
+      .image(panelLeft + panelWidth - 52, 387, 'player')
+      .setDisplaySize(47, 68)
+      .setVisible(false)
+
+    const playerBubble = this.add
+      .rectangle(panelLeft + 190, 385, 260, 95, 0xe8f0e5)
+      .setStrokeStyle(2, 0x7e9975)
+      .setVisible(false)
+
+    const playerReplyText = this.add
+      .text(playerBubble.x - 110, playerBubble.y - 33, '', {
         color: '#2c2c2a',
         fontFamily: 'Arial',
-        fontSize: '13px',
+        fontSize: '16px',
+        wordWrap: {
+          width: 220,
+        },
       })
-      .setOrigin(0.5)
+      .setVisible(false)
 
-    this.hoverTooltip
-      .add([background, nameText, roleText])
-      .setPosition(x, y)
-      .setVisible(true)
-  }
+    const secondManagerAvatarBorder = this.add
+      .circle(panelLeft + 52, 500, 31, 0x2c2c2a)
+      .setVisible(false)
 
-  private updateNearbyClient() {
-    let nearestId: ClientId | null = null
-    let nearestDistance = Number.POSITIVE_INFINITY
+    const secondManagerAvatar = this.add
+      .image(panelLeft + 52, 502, 'manager')
+      .setDisplaySize(47, 68)
+      .setVisible(false)
 
-    for (const [clientId, sprite] of this.clientSprites) {
-      const distance = Phaser.Math.Distance.Between(
-        this.player.x,
-        this.player.y,
-        sprite.x,
-        sprite.y
-      )
+    const secondManagerBubble = this.add
+      .rectangle(panelLeft + 270, 500, 330, 85, 0xf4f7f9)
+      .setStrokeStyle(2, 0xa1a7ad)
+      .setVisible(false)
 
-      if (
-        distance < INTERACTION_DISTANCE &&
-        distance < nearestDistance
-      ) {
-        nearestId = clientId
-        nearestDistance = distance
-      }
-    }
-
-    this.nearbyClientId = nearestId
-
-    if (nearestId) {
-      this.interactionPrompt
-        .setText(
-          `Press E to speak with ${this.clients[nearestId].name}`
-        )
-        .setVisible(true)
-    } else {
-      this.interactionPrompt.setVisible(false)
-    }
-  }
-
-  private speakToClient(clientId: ClientId) {
-    const client = this.clients[clientId]
-    this.pendingClientCompletion = client.spokenTo
-      ? null
-      : clientId
-
-    this.openDialogue(
-      client.name,
-      client.introduction,
-      false
-    )
-  }
-
-  private updateProgress() {
-    const spokenCount = Object.values(this.clients).filter(
-      (client) => client.spokenTo
-    ).length
-
-    this.progressText.setText(`Clients: ${spokenCount} / 2`)
-
-    if (spokenCount === 2 && !this.levelCompleted) {
-      this.levelCompleted = true
-      this.time.delayedCall(450, () => {
-        this.unlockExitAfterDialogue = true
-        this.openDialogue(
-          'Manager',
-          'Level 1 complete! Outreach is ready to unlock. Return to the entrance and leave the room when you are ready.',
-          false
-        )
-      })
-    }
-  }
-
-  private openDialogue(
-    speaker: string,
-    message: string,
-    unlockControlsAfterClosing: boolean
-  ) {
-    this.dialogueOpen = true
-    this.unlockControlsAfterDialogue =
-      unlockControlsAfterClosing
-    this.interactionPrompt.setVisible(false)
-    this.dialogueContainer.removeAll(true)
-
-    const panelWidth = Math.min(
-      620,
-      this.cameras.main.width - 54
-    )
-    const panelHeight = 178
-
-    const panel = this.add
-      .rectangle(
-        0,
-        0,
-        panelWidth,
-        panelHeight,
-        0xf7fafc,
-        0.98
-      )
-      .setStrokeStyle(5, 0x2c2c2a)
-      .setInteractive({ useHandCursor: true })
-
-    const speakerText = this.add
+    const secondManagerText = this.add
       .text(
-        -panelWidth / 2 + 24,
-        -panelHeight / 2 + 18,
-        speaker,
-        {
-          color: '#1f4e79',
-          fontFamily: 'Arial',
-          fontSize: '20px',
-          fontStyle: 'bold',
-        }
-      )
-      .setOrigin(0)
-
-    const messageText = this.add
-      .text(
-        -panelWidth / 2 + 24,
-        -panelHeight / 2 + 53,
-        message,
+        secondManagerBubble.x - 145,
+        secondManagerBubble.y - 28,
+        'Thanks! Your test reply was received.',
         {
           color: '#2c2c2a',
           fontFamily: 'Arial',
           fontSize: '16px',
-          lineSpacing: 5,
           wordWrap: {
-            width: panelWidth - 48,
+            width: 290,
           },
         }
       )
-      .setOrigin(0)
+      .setVisible(false)
 
-    const continueButton = this.add
-      .text(
-        panelWidth / 2 - 20,
-        panelHeight / 2 - 16,
-        'CONTINUE',
-        {
-          color: '#ffffff',
-          backgroundColor: '#5b8c4a',
-          fontFamily: 'Arial',
-          fontSize: '14px',
-          fontStyle: 'bold',
-          padding: {
-            x: 13,
-            y: 7,
-          },
-        }
+    const replyInput = this.add
+      .dom(panelLeft + 205, WORLD_HEIGHT - 78)
+      .createFromHTML(
+        `
+        <input
+          name="managerTestReply"
+          maxlength="120"
+          aria-label="Reply to manager"
+          placeholder="Type a test reply..."
+          style="
+            width: 310px;
+            height: 54px;
+            box-sizing: border-box;
+            border: 2px solid #d8c59e;
+            border-radius: 10px;
+            padding: 0 14px;
+            background: #ffffff;
+            color: #2c2c2a;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+            outline: none;
+          "
+        />
+      `
       )
-      .setOrigin(1)
-      .setInteractive({ useHandCursor: true })
+      .setScrollFactor(0)
+      .setDepth(6100)
 
-    panel.on('pointerup', () => {
-      this.closeDialogue()
+    const inputElement = replyInput.getChildByName('managerTestReply') as HTMLInputElement | null
+
+    const sendX = panelLeft + panelWidth - 47
+
+    const sendY = WORLD_HEIGHT - 78
+
+    const sendBackground = this.add
+      .circle(sendX, sendY, 28, 0xe6e8e9)
+      .setStrokeStyle(4, 0x111111)
+      .setInteractive({
+        useHandCursor: true,
+      })
+
+    const sendTriangle = this.add.graphics()
+
+    sendTriangle.fillStyle(0x2c2c2a)
+
+    sendTriangle.fillTriangle(sendX - 7, sendY - 11, sendX - 7, sendY + 11, sendX + 11, sendY)
+
+    let replyHasBeenSent = false
+
+    const sendOrContinue = () => {
+      this.effects.pressButton(sendBackground)
+
+      const reply = inputElement?.value.trim() ?? ''
+
+      if (!replyHasBeenSent) {
+        if (!reply) {
+          inputElement?.focus()
+          return
+        }
+
+        replyHasBeenSent = true
+
+        playerReplyText.setText(reply).setVisible(true)
+
+        playerAvatarBorder.setVisible(true)
+        playerAvatar.setVisible(true)
+        playerBubble.setVisible(true)
+
+        secondManagerAvatarBorder.setVisible(true)
+        secondManagerAvatar.setVisible(true)
+        secondManagerBubble.setVisible(true)
+        secondManagerText.setVisible(true)
+
+        this.effects.animateBubble([
+          playerAvatarBorder,
+          playerAvatar,
+          playerBubble,
+          playerReplyText,
+        ])
+
+        this.effects.animateBubble(
+          [secondManagerAvatarBorder, secondManagerAvatar, secondManagerBubble, secondManagerText],
+          300
+        )
+
+        if (inputElement) {
+          inputElement.value = ''
+          inputElement.placeholder = 'Click the triangle again to continue'
+          inputElement.disabled = true
+        }
+
+        return
+      }
+
+      replyInput.destroy()
+      panel.destroy(true)
+
+      this.managerPanel = undefined
+      this.managerReplyInput = undefined
+
+      this.restoreRoomCamera(onContinue)
+    }
+
+    sendBackground.on('pointerdown', sendOrContinue)
+
+    inputElement?.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault()
+        sendOrContinue()
+      }
     })
-    continueButton.on('pointerup', () => {
-      this.closeDialogue()
-    })
 
-    this.dialogueContainer
-      .add([
-        panel,
-        speakerText,
-        messageText,
-        continueButton,
-      ])
-      .setVisible(true)
+    panel.add([
+      panelBody,
+      header,
+      title,
+      managerAvatarBorder,
+      managerAvatar,
+      managerBubble,
+      managerText,
+      playerAvatarBorder,
+      playerAvatar,
+      playerBubble,
+      playerReplyText,
+      secondManagerAvatarBorder,
+      secondManagerAvatar,
+      secondManagerBubble,
+      secondManagerText,
+      sendBackground,
+      sendTriangle,
+    ])
 
-    this.positionInterfaceOnCamera()
-  }
+    this.cameras.main.ignore([panel, replyInput])
 
-  private closeDialogue() {
-    if (!this.dialogueOpen) {
-      return
-    }
+    this.managerPanel = panel
+    this.managerReplyInput = replyInput
 
-    this.dialogueOpen = false
-    this.dialogueContainer.setVisible(false)
+    this.effects.animatePanel(panel)
 
-    // A conversation only counts after the user has actually finished and
-    // closed that client's dialogue, not immediately when E is pressed.
-    if (this.pendingClientCompletion) {
-      const completedClientId = this.pendingClientCompletion
-      this.pendingClientCompletion = null
-      this.clients[completedClientId].spokenTo = true
-      this.updateProgress()
-    }
-
-    if (this.unlockControlsAfterDialogue) {
-      this.controlsEnabled = true
-      this.progressText.setVisible(true)
-      this.minimap.setVisible(true)
-      this.unlockControlsAfterDialogue = false
-    }
-
-    if (this.unlockExitAfterDialogue) {
-      this.exitUnlocked = true
-      this.unlockExitAfterDialogue = false
-    }
-  }
-
-  private updateExitInteraction() {
-    if (!this.exitUnlocked || this.exitSequenceStarted) {
-      this.nearExit = false
-      return
-    }
-
-    const exitX = WORLD_WIDTH / 2
-    const exitY = WORLD_HEIGHT - 145
-    const distance = Phaser.Math.Distance.Between(
-      this.player.x,
-      this.player.y,
-      exitX,
-      exitY
+    this.effects.animateBubble(
+      [managerAvatarBorder, managerAvatar, managerBubble, managerText],
+      250
     )
 
-    this.nearExit = distance < 155
+    this.effects.typeMessage(managerText, message, 450)
 
-    if (this.nearExit) {
-      this.nearbyClientId = null
-      this.interactionPrompt
-        .setText('Press E to leave Level 1')
-        .setVisible(true)
-    }
+    this.effects.addButtonHover(sendBackground)
   }
 
-  private startExitCinematic() {
-    if (this.exitSequenceStarted) {
+  private closeManagerPanel(): void {
+    this.managerReplyInput?.destroy()
+    this.managerReplyInput = undefined
+
+    this.managerPanel?.destroy(true)
+    this.managerPanel = undefined
+  }
+
+  private updateMovement(): void {
+    let velocityX = 0
+    let velocityY = 0
+
+    if (this.cursors.left.isDown || this.wasd.left.isDown) {
+      velocityX = -PLAYER_SPEED
+    }
+
+    if (this.cursors.right.isDown || this.wasd.right.isDown) {
+      velocityX = PLAYER_SPEED
+    }
+
+    if (this.cursors.up.isDown || this.wasd.up.isDown) {
+      velocityY = -PLAYER_SPEED
+    }
+
+    if (this.cursors.down.isDown || this.wasd.down.isDown) {
+      velocityY = PLAYER_SPEED
+    }
+
+    if (velocityX !== 0 && velocityY !== 0) {
+      velocityX *= 0.7071
+      velocityY *= 0.7071
+    }
+
+    this.player.setVelocity(velocityX, velocityY)
+
+    this.effects.updateWalking(this.player, velocityX !== 0 || velocityY !== 0, this.time.now)
+  }
+
+  private updateCharacterDepths(): void {
+    this.player.setDepth(this.player.y)
+    this.manager.setDepth(this.manager.y)
+  }
+
+  private openHomeMenu(): void {
+    if (this.menuPanel) {
       return
     }
 
-    this.exitSequenceStarted = true
+    const previousInterfaceState = this.interfaceOpen
+
+    const previousControlState = this.controlsEnabled
+
+    this.interfaceOpen = true
     this.controlsEnabled = false
-    this.nearExit = false
-    this.interactionPrompt.setVisible(false)
-    this.progressText.setVisible(false)
-    this.minimap.setVisible(false)
 
-    const camera = this.cameras.main
-    const walkingBob = this.tweens.add({
-      targets: this.player,
-      angle: { from: -2.5, to: 2.5 },
-      duration: 230,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
-    })
+    const menu = this.add.container(0, 0).setScrollFactor(0).setDepth(7000)
 
-    this.tweens.add({
-      targets: this.player,
-      x: WORLD_WIDTH / 2,
-      y: WORLD_HEIGHT - 70,
-      duration: 1800,
-      ease: 'Sine.easeInOut',
-      onComplete: () => {
-        walkingBob.stop()
-        this.player.setAngle(0)
-        this.closeDoorsAndReturnToDashboard()
-      },
-    })
-
-    this.tweens.add({
-      targets: camera,
-      zoom: 1.68,
-      duration: 1800,
-      ease: 'Sine.easeInOut',
-    })
-  }
-
-  private closeDoorsAndReturnToDashboard() {
-    const camera = this.cameras.main
-    const screenWidth = camera.width
-    const screenHeight = camera.height
-    const overlay = this.add
-      .container(0, 0)
-      .setDepth(30000)
-
-    const darkness = this.add
-      .rectangle(0, 0, screenWidth, screenHeight, 0x111820)
+    const dimmer = this.add
+      .rectangle(0, 0, WORLD_WIDTH, WORLD_HEIGHT, 0xefe1c7, 0.76)
       .setOrigin(0)
-      .setAlpha(0)
+      .setInteractive()
 
-    const leftDoor = this.add
-      .image(-screenWidth / 2 - 160, screenHeight / 2, 'door-left')
-      .setOrigin(0, 0.5)
-      .setDisplaySize(screenWidth / 2 + 90, screenHeight * 1.22)
+    const panel = this.add
+      .rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 720, 220, 0xf3f6f8)
+      .setStrokeStyle(4, 0x111111)
 
-    const rightDoor = this.add
-      .image(screenWidth * 1.5 + 160, screenHeight / 2, 'door-right')
-      .setOrigin(1, 0.5)
-      .setDisplaySize(screenWidth / 2 + 90, screenHeight * 1.22)
+    const topStrip = this.add
+      .rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2 - 98, 720, 18, 0xb98900)
+      .setStrokeStyle(3, 0x111111)
 
-    const centreSeam = this.add
-      .rectangle(screenWidth / 2, screenHeight / 2, 10, screenHeight, 0x2c2c2a)
-      .setAlpha(0)
+    const resume = this.createMenuButton(
+      WORLD_WIDTH / 2 - 215,
+      WORLD_HEIGHT / 2 + 15,
+      'Resume',
+      () => {
+        menu.destroy(true)
+        this.menuPanel = undefined
+        this.interfaceOpen = previousInterfaceState
+        this.controlsEnabled = previousControlState
+      }
+    )
 
-    overlay.add([darkness, leftDoor, rightDoor, centreSeam])
-    this.positionScreenOverlay(overlay)
-
-    this.tweens.add({
-      targets: leftDoor,
-      x: -45,
-      duration: 1500,
-      ease: 'Cubic.easeInOut',
+    const restart = this.createMenuButton(WORLD_WIDTH / 2, WORLD_HEIGHT / 2 + 15, 'Restart', () => {
+      window.location.reload()
     })
-    this.tweens.add({
-      targets: rightDoor,
-      x: screenWidth + 45,
-      duration: 1500,
-      ease: 'Cubic.easeInOut',
+
+    const quit = this.createMenuButton(WORLD_WIDTH / 2 + 215, WORLD_HEIGHT / 2 + 15, 'Quit', () => {
+      window.location.assign('/dashboard')
     })
-    this.tweens.add({
-      targets: darkness,
-      alpha: 1,
-      duration: 1300,
-      delay: 300,
-    })
-    this.tweens.add({
-      targets: centreSeam,
-      alpha: 1,
-      duration: 350,
-      delay: 1150,
-      onComplete: () => {
-        window.location.assign('/dashboard?completed=level-1')
-      },
-    })
+
+    menu.add([dimmer, panel, topStrip, resume, restart, quit])
+
+    this.cameras.main.ignore(menu)
+    this.menuPanel = menu
   }
 
-  private updateMinimap() {
-    if (!this.minimap?.visible || !this.player) {
-      return
-    }
-
-    const width = 138
-    const height = 96
-    const scaleX = width / WORLD_WIDTH
-    const scaleY = height / WORLD_HEIGHT
-
-    this.minimap.clear()
-    this.minimap.fillStyle(0xf7fafc, 0.97)
-    this.minimap.fillRoundedRect(0, 0, width, height, 10)
-    this.minimap.lineStyle(3, 0x2c2c2a)
-    this.minimap.strokeRoundedRect(0, 0, width, height, 10)
-
-    // Simplified table markers make the map feel useful.
-    this.minimap.fillStyle(0xc98a3e, 0.35)
-    this.minimap.fillCircle(
-      480 * scaleX,
-      500 * scaleY,
-      8
-    )
-    this.minimap.fillCircle(
-      1440 * scaleX,
-      500 * scaleY,
-      8
-    )
-    this.minimap.fillCircle(
-      960 * scaleX,
-      860 * scaleY,
-      8
-    )
-
-    this.drawMinimapDot(
-      this.player.x * scaleX,
-      this.player.y * scaleY,
-      0x7eb6e0,
-      5
-    )
-    this.drawMinimapDot(
-      this.manager.x * scaleX,
-      this.manager.y * scaleY,
-      0x5b8c4a,
-      4
-    )
-
-    for (const [clientId, sprite] of this.clientSprites) {
-      const colour = this.clients[clientId].spokenTo
-        ? 0x8b8b87
-        : 0xc98a3e
-
-      this.drawMinimapDot(
-        sprite.x * scaleX,
-        sprite.y * scaleY,
-        colour,
-        4
-      )
-    }
-  }
-
-  private drawMinimapDot(
+  private createMenuButton(
     x: number,
     y: number,
-    colour: number,
-    radius: number
-  ) {
-    this.minimap.fillStyle(colour)
-    this.minimap.fillCircle(x, y, radius)
-    this.minimap.lineStyle(1, 0x2c2c2a)
-    this.minimap.strokeCircle(x, y, radius)
+    label: string,
+    onClick: () => void
+  ): Phaser.GameObjects.Container {
+    const container = this.add.container(x, y)
+
+    const background = this.add
+      .rectangle(0, 0, 160, 50, 0x5b8c4a)
+      .setStrokeStyle(3, 0x111111)
+      .setInteractive({
+        useHandCursor: true,
+      })
+
+    this.effects.addButtonHover(background)
+
+    const text = this.add
+      .text(0, 0, label, {
+        color: '#ffffff',
+        fontFamily: 'Arial',
+        fontSize: '21px',
+      })
+      .setOrigin(0.5)
+
+    background.on('pointerdown', () => {
+      this.effects.pressButton(background)
+
+      onClick()
+    })
+
+    container.add([background, text])
+
+    return container
+  }
+
+  private openNotebook(): void {
+    if (this.notebookPanel) {
+      return
+    }
+
+    const previousInterfaceState = this.interfaceOpen
+
+    const previousControlState = this.controlsEnabled
+
+    this.interfaceOpen = true
+    this.controlsEnabled = false
+
+    const panel = this.add.container(0, 0).setScrollFactor(0).setDepth(7200)
+
+    const dimmer = this.add
+      .rectangle(0, 0, WORLD_WIDTH, WORLD_HEIGHT, 0xefe1c7, 0.82)
+      .setOrigin(0)
+      .setInteractive()
+
+    const notebookWidth = 460
+    const notebookHeight = 625
+    const notebookX = WORLD_WIDTH / 2
+    const notebookY = WORLD_HEIGHT / 2
+
+    const notebookBody = this.add
+      .rectangle(notebookX, notebookY, notebookWidth, notebookHeight, 0xf4f7f9)
+      .setStrokeStyle(5, 0x111111)
+
+    const header = this.add
+      .rectangle(notebookX, 94, notebookWidth, 105, 0xb98900)
+      .setStrokeStyle(5, 0x111111)
+
+    const iconCircle = this.add.circle(notebookX, 94, 42, 0x2c2c2a).setStrokeStyle(4, 0x000000)
+
+    const iconPaper = this.add
+      .rectangle(notebookX, 94, 27, 38, 0xf4f7f9)
+      .setStrokeStyle(2, 0x111111)
+
+    const iconLines = this.add.graphics()
+    iconLines.lineStyle(1, 0x555555)
+
+    for (let y = 82; y <= 106; y += 5) {
+      iconLines.lineBetween(notebookX - 9, y, notebookX + 9, y)
+    }
+
+    const input = this.add
+      .dom(notebookX, notebookY + 62)
+      .createFromHTML(
+        `
+        <textarea
+          name="levelOneNotes"
+          maxlength="1000"
+          aria-label="Level 1 consultant notes"
+          style="
+            width: 365px;
+            height: 430px;
+            resize: none;
+            border: 0;
+            padding: 4px 8px;
+            background-color: #f4f7f9;
+            background-image:
+              repeating-linear-gradient(
+                to bottom,
+                transparent 0,
+                transparent 34px,
+                #222222 35px,
+                #222222 37px
+              );
+            color: #2c2c2a;
+            font-family: Arial, sans-serif;
+            font-size: 17px;
+            line-height: 37px;
+            outline: none;
+            overflow-y: auto;
+          "
+        ></textarea>
+      `
+      )
+      .setScrollFactor(0)
+      .setDepth(7300)
+
+    const textarea = input.getChildByName('levelOneNotes') as HTMLTextAreaElement | null
+
+    if (textarea) {
+      textarea.value = this.notes
+    }
+
+    const saveX = notebookX + notebookWidth / 2 - 25
+
+    const saveY = notebookY + notebookHeight / 2 + 28
+
+    const saveButton = this.add
+      .circle(saveX, saveY, 25, 0xe6e8e9)
+      .setStrokeStyle(4, 0x111111)
+      .setInteractive({
+        useHandCursor: true,
+      })
+
+    this.effects.addButtonHover(saveButton)
+
+    const saveTriangle = this.add.graphics()
+
+    saveTriangle.fillStyle(0x2c2c2a)
+
+    saveTriangle.fillTriangle(saveX - 7, saveY - 11, saveX - 7, saveY + 11, saveX + 11, saveY)
+
+    const saveNotebook = () => {
+      if (textarea) {
+        this.notes = textarea.value
+      }
+
+      input.destroy()
+      panel.destroy(true)
+
+      this.notebookPanel = undefined
+      this.notebookInput = undefined
+
+      this.interfaceOpen = previousInterfaceState
+
+      this.controlsEnabled = previousControlState
+    }
+
+    saveButton.on('pointerdown', () => {
+      this.effects.pressButton(saveButton)
+
+      this.effects.playSaveSparkles(saveX, saveY, saveNotebook)
+    })
+
+    panel.add([
+      dimmer,
+      notebookBody,
+      header,
+      iconCircle,
+      iconPaper,
+      iconLines,
+      saveButton,
+      saveTriangle,
+    ])
+
+    this.cameras.main.ignore([panel, input])
+
+    this.notebookPanel = panel
+    this.notebookInput = input
+
+    this.effects.animateNotebook(panel)
   }
 }
+
+export default LevelOneScene
