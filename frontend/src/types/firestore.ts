@@ -32,4 +32,46 @@ export interface Note {
   _schemaVersion: 1      // every document carries this — see /evolve-schema
 }
 
+export interface Persona {
+  id: string
+  name: string
+  level: 1 | 2
+  systemPrompt: string
+  objections: string[]
+  createdAt: Timestamp
+  updatedAt: Timestamp
+  _schemaVersion: 1
+}
+
+export interface ConsultingSession {
+  id: string
+  uid: string
+  personaId: string
+  level: 1 | 2
+  status: 'active' | 'completed'
+  messages: Array<{
+    role: 'player' | 'persona'
+    content: string
+    createdAt: Timestamp
+  }>
+  createdAt: Timestamp
+  updatedAt: Timestamp
+  _schemaVersion: 1
+}
+
+export interface PortfolioProgress {
+  id: string
+  uid: string
+  completedPersonaIds: string[]
+  completedLevels: number[]
+  totalXp: number
+  createdAt: Timestamp
+  updatedAt: Timestamp
+  _schemaVersion: 1
+}
+
+
+
+
+
 export type CreateUserProfileInput = Omit<UserProfile, 'createdAt' | 'updatedAt'>
