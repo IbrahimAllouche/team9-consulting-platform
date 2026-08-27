@@ -1,7 +1,7 @@
 'use client'
 
 import type { CSSProperties } from 'react'
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { CheckCircle2, LockKeyhole } from 'lucide-react'
@@ -12,6 +12,11 @@ type ConsultingRoomProps = {
   stage: ConsultingStage
 }
 
+const subscribeToLocation = () => () => undefined
+
+const readLevelOneCompletion = () =>
+  new URLSearchParams(window.location.search).get('completed') === 'level-1'
+
 const roomImageByType: Record<ConsultingStage['roomType'], string> = {
   'lead-room': '/assets/landing/rooms/findALead.png',
   'outreach-office': '/assets/landing/rooms/outreach.png',
@@ -21,10 +26,7 @@ const roomImageByType: Record<ConsultingStage['roomType'], string> = {
   'closing-room': '/assets/landing/rooms/closeDeal.png',
 }
 
-const roomImageDescriptionByType: Record<
-  ConsultingStage['roomType'],
-  string
-> = {
+const roomImageDescriptionByType: Record<ConsultingStage['roomType'], string> = {
   'lead-room': 'Networking tables and chairs inside the lead-finding lobby',
   'outreach-office': 'Office desk prepared for client outreach',
   'preparation-room': 'Meeting preparation desk and presentation screen',
@@ -34,12 +36,11 @@ const roomImageDescriptionByType: Record<
 }
 
 export default function ConsultingRoom({ stage }: ConsultingRoomProps) {
-  const [levelOneJustCompleted, setLevelOneJustCompleted] = useState(false)
-
-  useEffect(() => {
-    const parameters = new URLSearchParams(window.location.search)
-    setLevelOneJustCompleted(parameters.get('completed') === 'level-1')
-  }, [])
+  const levelOneJustCompleted = useSyncExternalStore(
+    subscribeToLocation,
+    readLevelOneCompletion,
+    () => false
+  )
 
   const effectiveStatus: ConsultingStage['status'] =
     levelOneJustCompleted && stage.id === 1
@@ -63,9 +64,7 @@ export default function ConsultingRoom({ stage }: ConsultingRoomProps) {
 
   return (
     <>
-      {stage.id === 2 && (
-        <LevelCompletionCelebration show={levelOneJustCompleted} />
-      )}
+      {stage.id === 2 && <LevelCompletionCelebration show={levelOneJustCompleted} />}
 
       <section
         id={`stage-${stage.id}`}
@@ -74,18 +73,14 @@ export default function ConsultingRoom({ stage }: ConsultingRoomProps) {
           isPlayable
             ? 'game-room-active cursor-pointer bg-[#ffdda3]'
             : 'game-room-locked bg-cloud-white cursor-not-allowed'
-        } ${
-          isCompleted ? 'ring-8 ring-[#5b8c4a]/55' : ''
-        } ${
+        } ${isCompleted ? 'ring-8 ring-[#5b8c4a]/55' : ''} ${
           isNewlyUnlocked
-            ? 'z-10 animate-pulse ring-8 ring-[#c98a3e] shadow-[0_0_42px_rgba(201,138,62,0.9)]'
+            ? 'z-10 animate-pulse shadow-[0_0_42px_rgba(201,138,62,0.9)] ring-8 ring-[#c98a3e]'
             : ''
         }`}
         aria-labelledby={`stage-${stage.id}-title`}
       >
-        {isActive && (
-          <div className="room-light-sweep" aria-hidden="true" />
-        )}
+        {isActive && <div className="room-light-sweep" aria-hidden="true" />}
 
         <div className="relative z-20 flex items-start gap-3 p-4">
           <div
@@ -93,11 +88,7 @@ export default function ConsultingRoom({ stage }: ConsultingRoomProps) {
               isCompleted ? 'bg-plant-green' : 'bg-dark-blue'
             }`}
           >
-            {isCompleted ? (
-              <CheckCircle2 className="h-7 w-7" aria-label="Completed" />
-            ) : (
-              stage.id
-            )}
+            {isCompleted ? <CheckCircle2 className="h-7 w-7" aria-label="Completed" /> : stage.id}
           </div>
 
           <div className="min-w-0 flex-1">
