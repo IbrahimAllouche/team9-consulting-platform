@@ -1,5 +1,9 @@
 import Phaser from 'phaser'
 import { LevelOneEffects } from '../effects/LevelOneEffects'
+import {
+  ClientDialogueController,
+  type ClientDefinition,
+} from '../dialogue/ClientDialogueController'
 
 const WORLD_WIDTH = 1440
 const WORLD_HEIGHT = 720
@@ -18,6 +22,10 @@ export class LevelOneScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Image
   private manager!: Phaser.Physics.Arcade.Image
   private effects!: LevelOneEffects
+  private goodClient!: Phaser.GameObjects.Image
+  private badClient!: Phaser.GameObjects.Image
+
+  private clientDialogue?: ClientDialogueController
 
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
 
@@ -92,25 +100,56 @@ export class LevelOneScene extends Phaser.Scene {
     this.configureKeyboard()
     this.createInterface()
     this.createInterfaceCamera(worldObjects)
+    const clients: ClientDefinition[] = [
+      {
+        name: 'Jordan Lee',
+        texture: 'good-client',
+        sprite: this.goodClient,
+      },
+      {
+        name: 'Morgan Blake',
+        texture: 'bad-client',
+        sprite: this.badClient,
+      },
+    ]
+
+    this.clientDialogue = new ClientDialogueController({
+      scene: this,
+      player: this.player,
+      clients,
+      effects: this.effects,
+      mainCamera: this.cameras.main,
+      interfaceCamera: this.interfaceCamera,
+      worldWidth: WORLD_WIDTH,
+      worldHeight: WORLD_HEIGHT,
+
+      onOpen: () => {
+        this.interfaceOpen = true
+        this.controlsEnabled = false
+      },
+
+      onClose: () => {
+        this.interfaceOpen = false
+        this.controlsEnabled = true
+      },
+    })
     this.startArrivalSequence()
   }
 
   override update(): void {
-    if (!this.player) {
-      return
-    }
+    if (!this.player) return
 
     if (!this.controlsEnabled || this.interfaceOpen) {
       this.player.setVelocity(0)
       this.player.setAngle(0)
-
       this.effects.updateWalking(this.player, false, this.time.now)
-
+      this.clientDialogue?.hidePrompt()
       return
     }
 
     this.updateMovement()
     this.updateCharacterDepths()
+    this.clientDialogue?.update()
   }
 
   private configureKeyboard(): void {
@@ -277,21 +316,21 @@ export class LevelOneScene extends Phaser.Scene {
 
     this.manager.setDepth(this.manager.y)
 
-    const goodClient = this.physics.add
+    this.goodClient = this.physics.add
       .staticImage(270, 470, 'good-client')
       .setDisplaySize(CHARACTER_WIDTH, CHARACTER_HEIGHT)
       .setDepth(470)
       .refreshBody()
 
-    const badClient = this.physics.add
+    this.badClient = this.physics.add
       .staticImage(1050, 470, 'bad-client')
       .setDisplaySize(CHARACTER_WIDTH, CHARACTER_HEIGHT)
       .setDepth(470)
       .refreshBody()
 
-    this.effects.addIdleBreathing(goodClient, 500)
+    this.effects.addIdleBreathing(this.goodClient, 500)
 
-    this.effects.addIdleBreathing(badClient, 900)
+    this.effects.addIdleBreathing(this.badClient, 900)
 
     /*
      * Clients are still visual placeholders only.
