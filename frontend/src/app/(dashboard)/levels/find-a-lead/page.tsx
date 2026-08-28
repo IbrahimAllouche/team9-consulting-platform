@@ -1,9 +1,24 @@
+import ElevatorIntro from '@/components/auth/ElevatorIntro'
 import { PhaserGame } from '@/features/game/components/PhaserGame'
 
 export default function FindLeadPage() {
   return (
-    <div className="h-[calc(100vh-6rem)] w-full overflow-hidden bg-[#f4ede1]">
+    /*
+     * The Level 1 game uses the entire browser viewport.
+     * LandingHeader is already hidden for /levels routes.
+     */
+    <main className="relative h-screen w-full overflow-hidden bg-[#2c2c2a]">
       <PhaserGame />
-    </div>
+
+      {/*
+       * Exact existing elevator animation:
+       * - gold arched frame;
+       * - silver elevator doors;
+       * - level indicator;
+       * - door rails;
+       * - existing opening/fade timing.
+       */}
+      <ElevatorIntro />
+    </main>
   )
 }
