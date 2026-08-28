@@ -63,7 +63,7 @@ export default async function DashboardPage() {
           { left: '57%', top: '82%', size: '6px', duration: '6.5s', delay: '-5s' },
           { left: '73%', top: '27%', size: '5px', duration: '7.5s', delay: '-3s' },
           { left: '91%', top: '68%', size: '7px', duration: '8.5s', delay: '-6s' },
-        ].map((particle, index) => (
+        ].map((particle) => (
           <span
             key={`${particle.left}-${particle.top}`}
             className="lobby-particle"
@@ -79,7 +79,7 @@ export default async function DashboardPage() {
           />
         ))}
       </div>
-      <div className="mx-auto max-w-[1800px] px-4 py-10 sm:px-7 lg:px-10">
+      <div className="mx-auto max-w-[1900px] px-4 py-8 sm:px-6 lg:px-6 2xl:px-10 2xl:py-10">
         {/* Landing-page introduction */}
         <section aria-labelledby="lobby-heading">
           <p className="text-dark-blue text-sm font-extrabold tracking-[0.16em] uppercase">
@@ -103,12 +103,12 @@ export default async function DashboardPage() {
          * sits to its right on wide screens and moves underneath on tablets
          * and phones.
          */}
-        <div className="mt-10 grid items-start gap-8 xl:grid-cols-[minmax(0,1fr)_330px]">
+        <div className="mt-8 grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_240px] 2xl:mt-10 2xl:grid-cols-[minmax(0,1fr)_300px] 2xl:gap-8">
           <section
             className="border-charcoal bg-honey-wood overflow-hidden rounded-3xl border-[6px] p-3 shadow-[8px_9px_0_var(--wood-shadow)]"
             aria-label="Consulting stages"
           >
-            <div className="grid gap-1 lg:grid-cols-[minmax(280px,0.9fr)_minmax(0,2fr)]">
+            <div className="relative z-10 grid gap-1 lg:grid-cols-[minmax(230px,0.82fr)_minmax(0,2fr)] 2xl:grid-cols-[minmax(280px,0.9fr)_minmax(0,2fr)]">
               {/*
                * Find a Lead is taller than the other rooms because it acts as
                * the lobby and entrance into the consulting journey.

@@ -19,6 +19,20 @@ export async function POST(request: Request) {
       )
     }
 
+    if (
+      process.env.NODE_ENV === 'development' &&
+      process.env.PERSONA_API_MOCK === 'true'
+    ) {
+      return NextResponse.json({
+        success: true,
+        provider: 'mock',
+        model: 'local-development-mock',
+        persona_id,
+        reply:
+          "Thanks for introducing yourself. I'm interested in discussing how your consulting team could help our organisation.",
+      })
+    }
+
     const personaSnapshot = await adminDb
       .collection('personas')
       .doc(persona_id)
