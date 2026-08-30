@@ -11,6 +11,7 @@ export type PersonaReplyResult = {
 
 type RequestPersonaReplyOptions = {
   message: string
+  personaId: string
   timeoutMs?: number
 }
 
@@ -20,9 +21,11 @@ type PersonaApiBody = {
 
 export async function requestPersonaReply({
   message,
+  personaId,
   timeoutMs = DEFAULT_PERSONA_TIMEOUT_MS,
 }: RequestPersonaReplyOptions): Promise<PersonaReplyResult> {
   const controller = new AbortController()
+
   const timeout = globalThis.setTimeout(() => {
     controller.abort()
   }, timeoutMs)
@@ -33,7 +36,10 @@ export async function requestPersonaReply({
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({
+        message,
+        persona_id: personaId,
+      }),
       signal: controller.signal,
     })
 
@@ -59,7 +65,9 @@ export async function requestPersonaReply({
       reason: 'success',
     }
   } catch {
-    return fallbackResult(controller.signal.aborted ? 'timeout' : 'network')
+    return fallbackResult(
+      controller.signal.aborted ? 'timeout' : 'network'
+    )
   } finally {
     globalThis.clearTimeout(timeout)
   }

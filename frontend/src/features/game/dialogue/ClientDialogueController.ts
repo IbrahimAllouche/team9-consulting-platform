@@ -1,9 +1,11 @@
 import Phaser from 'phaser'
 import { LevelOneEffects } from '../effects/LevelOneEffects'
+import { requestPersonaReply } from './personaDialogue'
 
 export type ClientDefinition = {
   name: string
   texture: string
+  personaId: string
   sprite: Phaser.GameObjects.Image
 }
 
@@ -360,50 +362,78 @@ export class ClientDialogueController {
     sendTriangle.fillTriangle(sendX - 7, sendY - 11, sendX - 7, sendY + 11, sendX + 11, sendY)
 
     let replySent = false
+let requestInProgress = false
 
-    const sendOrClose = () => {
-      this.effects.pressButton(sendButton)
+const sendOrClose = async () => {
+  this.effects.pressButton(sendButton)
 
-      if (!replySent) {
-        const reply = inputElement?.value.trim() ?? ''
+  if (!replySent) {
+    const reply = inputElement?.value.trim() ?? ''
 
-        if (!reply) {
-          inputElement?.focus()
-          return
-        }
-
-        replySent = true
-
-        playerText.setText(reply).setVisible(true)
-
-        playerAvatarBorder.setVisible(true)
-        playerAvatar.setVisible(true)
-        playerBubble.setVisible(true)
-
-        finalClientAvatarBorder.setVisible(true)
-        finalClientAvatar.setVisible(true)
-        finalClientBubble.setVisible(true)
-        finalClientText.setVisible(true)
-
-        this.effects.animateBubble([playerAvatarBorder, playerAvatar, playerBubble, playerText])
-
-        this.effects.animateBubble(
-          [finalClientAvatarBorder, finalClientAvatar, finalClientBubble, finalClientText],
-          300
-        )
-
-        if (inputElement) {
-          inputElement.value = ''
-          inputElement.disabled = true
-          inputElement.placeholder = 'Click the triangle again to close'
-        }
-
-        return
-      }
-
-      this.closeDialogue()
+    if (!reply || requestInProgress) {
+      inputElement?.focus()
+      return
     }
 
+    requestInProgress = true
+
+    playerText.setText(reply).setVisible(true)
+
+    playerAvatarBorder.setVisible(true)
+    playerAvatar.setVisible(true)
+    playerBubble.setVisible(true)
+
+    this.effects.animateBubble([
+      playerAvatarBorder,
+      playerAvatar,
+      playerBubble,
+      playerText,
+    ])
+
+    if (inputElement) {
+      inputElement.value = ''
+      inputElement.disabled = true
+      inputElement.placeholder = 'Waiting for client response...'
+    }
+
+    finalClientText.setText('Thinking...')
+
+    finalClientAvatarBorder.setVisible(true)
+    finalClientAvatar.setVisible(true)
+    finalClientBubble.setVisible(true)
+    finalClientText.setVisible(true)
+
+    this.effects.animateBubble(
+      [
+        finalClientAvatarBorder,
+        finalClientAvatar,
+        finalClientBubble,
+        finalClientText,
+      ],
+      300
+    )
+
+    const result = await requestPersonaReply({
+      message: reply,
+      personaId: client.personaId,
+    })
+
+    finalClientText.setText(result.reply)
+
+    replySent = true
+    requestInProgress = false
+
+    if (inputElement) {
+      inputElement.placeholder = 'Click the triangle again to close'
+    }
+
+    return
+  }
+
+  if (!requestInProgress) {
+    this.closeDialogue()
+  }
+}
     sendButton.on('pointerdown', sendOrClose)
 
     inputElement?.addEventListener('keydown', (event) => {
