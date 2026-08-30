@@ -12,23 +12,36 @@ describe('requestPersonaReply', () => {
   })
 
   it('returns a successful persona reply', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ reply: 'Hello, consultant.' }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        })
-      )
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ reply: 'Hello, consultant.' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
     )
 
-    const result = await requestPersonaReply({ message: 'Hello' })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await requestPersonaReply({
+      message: 'Hello',
+      personaId: 'test-level-1',
+    })
 
     expect(result).toEqual({
       reply: 'Hello, consultant.',
       usedFallback: false,
       reason: 'success',
     })
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/persona/respond',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          message: 'Hello',
+          persona_id: 'test-level-1',
+        }),
+      })
+    )
   })
 
   it('returns the fallback after a server error', async () => {
@@ -42,7 +55,10 @@ describe('requestPersonaReply', () => {
       )
     )
 
-    const result = await requestPersonaReply({ message: 'Hello' })
+    const result = await requestPersonaReply({
+      message: 'Hello',
+      personaId: 'test-level-1',
+    })
 
     expect(result.reply).toBe(PERSONA_FALLBACK_MESSAGE)
     expect(result.usedFallback).toBe(true)
@@ -55,7 +71,10 @@ describe('requestPersonaReply', () => {
       vi.fn().mockRejectedValue(new TypeError('Network unavailable'))
     )
 
-    const result = await requestPersonaReply({ message: 'Hello' })
+    const result = await requestPersonaReply({
+      message: 'Hello',
+      personaId: 'test-level-1',
+    })
 
     expect(result.reply).toBe(PERSONA_FALLBACK_MESSAGE)
     expect(result.usedFallback).toBe(true)
@@ -79,6 +98,7 @@ describe('requestPersonaReply', () => {
 
     const pendingResult = requestPersonaReply({
       message: 'Hello',
+      personaId: 'test-level-1',
       timeoutMs: 100,
     })
 
