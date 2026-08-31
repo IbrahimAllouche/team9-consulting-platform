@@ -9,7 +9,10 @@ import { EmptyState } from '@/components/shared/EmptyState'
 
 export function NotesList() {
   const { user } = useAuth()
-  const { data: notes, loading } = useCollection(getNotesCollection(), where('uid', '==', user?.uid ?? ''))
+  const { data: notes, loading } = useCollection(
+    getNotesCollection(),
+    where('uid', '==', user?.uid ?? '')
+  )
 
   if (loading) return <LoadingSpinner />
   if (notes.length === 0) return <EmptyState title="No notes yet" />

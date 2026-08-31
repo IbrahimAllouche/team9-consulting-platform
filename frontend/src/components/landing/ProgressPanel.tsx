@@ -7,17 +7,12 @@ type ProgressPanelProps = {
 }
 
 /**
- * Displays the consultant's current level, stage completion and statistics.
+ * Compact consultant progress sidebar.
  *
- * The values are currently passed from the landing-page placeholder data.
- * Later, the same component can receive real Firebase progress without needing
- * any visual redesign.
+ * Laptop screens use smaller cards so the dollhouse receives most of the
+ * available width. The cards expand again on extra-wide desktop screens.
  */
 export default function ProgressPanel({ progress }: ProgressPanelProps) {
-  /*
-   * Guarding against division by zero prevents an invalid percentage if the
-   * required XP or stage count has not yet been configured.
-   */
   const xpPercentage =
     progress.requiredXp > 0
       ? Math.min(100, Math.round((progress.currentXp / progress.requiredXp) * 100))
@@ -29,13 +24,15 @@ export default function ProgressPanel({ progress }: ProgressPanelProps) {
       : 0
 
   return (
-    <aside className="grid content-start gap-6" aria-label="Consultant progress">
-      {/* Level and XP card */}
-      <section className="game-progress-panel border-charcoal bg-cloud-white rounded-3xl border-[5px] p-6 shadow-[7px_8px_0_var(--charcoal)]">
-        <h2 className="text-dark-blue text-2xl font-extrabold">Level {progress.level}</h2>
+    <aside className="grid content-start gap-4 2xl:gap-6" aria-label="Consultant progress">
+      {/* Compact level and XP card */}
+      <section className="game-progress-panel border-charcoal bg-cloud-white rounded-2xl border-[4px] p-4 shadow-[5px_6px_0_var(--charcoal)] 2xl:rounded-3xl 2xl:border-[5px] 2xl:p-6 2xl:shadow-[7px_8px_0_var(--charcoal)]">
+        <h2 className="text-dark-blue text-xl font-extrabold 2xl:text-2xl">
+          Level {progress.level}
+        </h2>
 
         <div
-          className="bg-warm-grey border-charcoal mt-6 h-5 overflow-hidden rounded-full border-[3px]"
+          className="bg-warm-grey border-charcoal mt-4 h-4 overflow-hidden rounded-full border-[2px] 2xl:mt-6 2xl:h-5 2xl:border-[3px]"
           role="progressbar"
           aria-label="Experience points"
           aria-valuemin={0}
@@ -48,21 +45,17 @@ export default function ProgressPanel({ progress }: ProgressPanelProps) {
           />
         </div>
 
-        <p className="text-charcoal mt-4 text-base font-semibold">
+        <p className="text-charcoal mt-3 text-sm font-semibold 2xl:mt-4 2xl:text-base">
           {progress.currentXp} / {progress.requiredXp} XP
         </p>
       </section>
 
-      {/* Overall consulting-loop progress card */}
-      <section className="game-progress-panel border-charcoal bg-cloud-white rounded-3xl border-[5px] p-6 text-center shadow-[7px_8px_0_var(--charcoal)]">
-        <h2 className="text-dark-blue text-2xl font-extrabold">Your progress</h2>
+      {/* Compact consulting-loop progress card */}
+      <section className="game-progress-panel border-charcoal bg-cloud-white rounded-2xl border-[4px] p-4 text-center shadow-[5px_6px_0_var(--charcoal)] 2xl:rounded-3xl 2xl:border-[5px] 2xl:p-6 2xl:shadow-[7px_8px_0_var(--charcoal)]">
+        <h2 className="text-dark-blue text-xl font-extrabold 2xl:text-2xl">Your progress</h2>
 
-        {/*
-         * The donut chart is created with a conic gradient. This avoids adding
-         * a chart library for a single small progress indicator.
-         */}
         <div
-          className="progress-donut border-charcoal relative mx-auto mt-7 flex h-44 w-44 items-center justify-center rounded-full border-[3px]"
+          className="progress-donut border-charcoal relative mx-auto mt-5 flex h-32 w-32 items-center justify-center rounded-full border-[3px] 2xl:mt-7 2xl:h-44 2xl:w-44"
           style={{
             background: `conic-gradient(
               var(--plant-green) 0% ${stagePercentage}%,
@@ -72,26 +65,27 @@ export default function ProgressPanel({ progress }: ProgressPanelProps) {
           role="img"
           aria-label={`${stagePercentage}% of consulting stages complete`}
         >
-          {/* Inner circle cuts out the middle of the conic gradient. */}
-          <div className="border-charcoal bg-cloud-white absolute inset-6 flex items-center justify-center rounded-full border-[3px]">
-            <span className="text-dark-blue text-4xl font-extrabold">{stagePercentage}%</span>
+          <div className="border-charcoal bg-cloud-white absolute inset-4 flex items-center justify-center rounded-full border-[3px] 2xl:inset-6">
+            <span className="text-dark-blue text-3xl font-extrabold 2xl:text-4xl">
+              {stagePercentage}%
+            </span>
           </div>
         </div>
 
-        <p className="text-charcoal mt-6 text-lg">
+        <p className="text-charcoal mt-4 text-sm 2xl:mt-6 2xl:text-lg">
           {progress.completedStages} / {progress.totalStages} stages complete
         </p>
       </section>
 
-      {/* Consultant statistics card */}
-      <section className="game-progress-panel border-charcoal bg-cloud-white rounded-3xl border-[5px] p-6 shadow-[7px_8px_0_var(--charcoal)]">
-        <h2 className="text-dark-blue text-2xl font-extrabold">Your stats</h2>
+      {/* Compact statistics card */}
+      <section className="game-progress-panel border-charcoal bg-cloud-white rounded-2xl border-[4px] p-4 shadow-[5px_6px_0_var(--charcoal)] 2xl:rounded-3xl 2xl:border-[5px] 2xl:p-6 2xl:shadow-[7px_8px_0_var(--charcoal)]">
+        <h2 className="text-dark-blue text-xl font-extrabold 2xl:text-2xl">Your stats</h2>
 
-        <dl className="mt-6 space-y-4 text-base">
-          <div className="flex items-center justify-between gap-4">
-            <dt className="text-charcoal flex items-center gap-3">
+        <dl className="mt-4 space-y-3 text-sm 2xl:mt-6 2xl:space-y-4 2xl:text-base">
+          <div className="flex items-center justify-between gap-2">
+            <dt className="text-charcoal flex items-center gap-2 2xl:gap-3">
               <span
-                className="border-charcoal bg-honey-wood h-4 w-4 rounded-full border-2"
+                className="border-charcoal bg-honey-wood h-3.5 w-3.5 shrink-0 rounded-full border-2 2xl:h-4 2xl:w-4"
                 aria-hidden="true"
               />
               XP earned
@@ -100,25 +94,25 @@ export default function ProgressPanel({ progress }: ProgressPanelProps) {
             <dd className="text-dark-blue font-extrabold">{progress.currentXp}</dd>
           </div>
 
-          <div className="flex items-center justify-between gap-4">
-            <dt className="text-charcoal flex items-center gap-3">
+          <div className="flex items-center justify-between gap-2">
+            <dt className="text-charcoal flex items-center gap-2 2xl:gap-3">
               <span
-                className="border-charcoal bg-plant-green h-4 w-4 rounded-full border-2"
+                className="border-charcoal bg-plant-green h-3.5 w-3.5 shrink-0 rounded-full border-2 2xl:h-4 2xl:w-4"
                 aria-hidden="true"
               />
-              Badges collected
+              Badges
             </dt>
 
             <dd className="text-dark-blue font-extrabold">{progress.badgesCollected}</dd>
           </div>
 
-          <div className="flex items-center justify-between gap-4">
-            <dt className="text-charcoal flex items-center gap-3">
+          <div className="flex items-center justify-between gap-2">
+            <dt className="text-charcoal flex items-center gap-2 2xl:gap-3">
               <span
-                className="border-charcoal bg-light-blue h-4 w-4 rounded-full border-2"
+                className="border-charcoal bg-light-blue h-3.5 w-3.5 shrink-0 rounded-full border-2 2xl:h-4 2xl:w-4"
                 aria-hidden="true"
               />
-              Duration spent
+              Duration
             </dt>
 
             <dd className="text-dark-blue font-extrabold">{progress.durationHours} Hrs</dd>
