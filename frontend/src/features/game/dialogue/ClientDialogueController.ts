@@ -5,7 +5,9 @@ import { requestPersonaReply } from './personaDialogue'
 export type ClientDefinition = {
   name: string
   texture: string
-  personaId: string
+  personaId?: string
+  responseMode: 'llm' | 'hardcoded'
+  hardcodedReply?: string
   sprite: Phaser.GameObjects.Image
 }
 
@@ -413,12 +415,22 @@ const sendOrClose = async () => {
       300
     )
 
+    if (client.responseMode === 'hardcoded') {
+  finalClientText.setText(
+    client.hardcodedReply ?? 'Hi, nice to meet you!'
+  )
+} else {
+  if (!client.personaId) {
+    finalClientText.setText('Unable to load client response.')
+  } else {
     const result = await requestPersonaReply({
       message: reply,
       personaId: client.personaId,
     })
 
     finalClientText.setText(result.reply)
+  }
+}
 
     replySent = true
     requestInProgress = false
