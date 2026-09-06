@@ -12,21 +12,14 @@ export default function LandingHeader() {
   const { signOut } = useAuth()
 
   const [menuIsOpen, setMenuIsOpen] = useState(false)
-
   const [isSigningOut, setIsSigningOut] = useState(false)
 
-  /*
-   * Game levels should use the full viewport.
-   * The dashboard/profile header remains unchanged.
-   */
   const isLevelPage = pathname.startsWith('/levels/')
 
   const handleSignOut = async () => {
     try {
       setIsSigningOut(true)
-
       await signOut()
-
       router.replace('/auth/signin')
       router.refresh()
     } catch (error) {
@@ -36,10 +29,6 @@ export default function LandingHeader() {
     }
   }
 
-  /*
-   * Returning null here removes the entire IBM header
-   * from every level without removing it from dashboard.
-   */
   if (isLevelPage) {
     return null
   }
@@ -59,48 +48,48 @@ export default function LandingHeader() {
 
   return (
     <>
-      <header className="game-header border-charcoal bg-honey-wood relative z-40 grid min-h-24 grid-cols-[1fr_auto_1fr] items-center border-[5px] px-4 shadow-[0_5px_0_var(--wood-shadow)] sm:px-7">
-        {/* Hamburger menu button */}
+      <header className="game-header border-charcoal bg-honey-wood relative z-40 grid h-16 grid-cols-[1fr_auto_1fr] items-center border-[4px] px-3 shadow-[0_4px_0_var(--wood-shadow)] sm:px-5">
         <div className="flex justify-start">
           <button
             type="button"
             onClick={() => {
               setMenuIsOpen((currentValue) => !currentValue)
             }}
-            className="border-charcoal bg-warm-cream text-charcoal hover:bg-cloud-white flex h-12 w-12 items-center justify-center rounded-xl border-[3px] shadow-[3px_3px_0_var(--charcoal)] transition"
+            className="border-charcoal bg-warm-cream text-charcoal hover:bg-cloud-white flex h-9 w-9 items-center justify-center rounded-lg border-[2px] shadow-[2px_2px_0_var(--charcoal)] transition"
             aria-label={menuIsOpen ? 'Close navigation menu' : 'Open navigation menu'}
             aria-expanded={menuIsOpen}
             aria-controls="game-navigation"
           >
-            {menuIsOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
+            {menuIsOpen ? (
+              <X className="h-5 w-5" aria-hidden="true" />
+            ) : (
+              <Menu className="h-5 w-5" aria-hidden="true" />
+            )}
           </button>
         </div>
 
-        {/* Centred application title */}
         <Link
           href="/dashboard"
-          className="text-charcoal text-center text-[clamp(1.1rem,3vw,2rem)] font-extrabold tracking-wide"
+          className="text-charcoal text-center text-[clamp(1rem,2vw,1.45rem)] font-extrabold tracking-wide"
         >
           IBM CONSULTANCY 101
         </Link>
 
-        {/* Sign-out button */}
         <div className="flex justify-end">
           <button
             type="button"
             onClick={handleSignOut}
             disabled={isSigningOut}
-            className="border-charcoal bg-plant-green hover:bg-dark-blue rounded-xl border-[3px] px-4 py-2.5 text-sm font-bold text-white shadow-[4px_4px_0_var(--charcoal)] transition disabled:cursor-not-allowed disabled:opacity-60 sm:px-6 sm:text-base"
+            className="border-charcoal bg-plant-green hover:bg-dark-blue rounded-lg border-[2px] px-3 py-1.5 text-xs font-bold text-white shadow-[2px_2px_0_var(--charcoal)] transition disabled:cursor-not-allowed disabled:opacity-60 sm:px-4 sm:text-sm"
           >
             {isSigningOut ? 'Signing out...' : 'Sign out'}
           </button>
         </div>
       </header>
 
-      {/* Navigation drawer */}
       <aside
         id="game-navigation"
-        className={`border-charcoal bg-warm-cream fixed top-24 bottom-0 left-0 z-30 w-72 border-r-[5px] p-5 shadow-[6px_0_0_rgba(44,44,42,0.18)] transition-transform duration-300 ${
+        className={`border-charcoal bg-warm-cream fixed top-16 bottom-0 left-0 z-30 w-72 border-r-[5px] p-5 shadow-[6px_0_0_rgba(44,44,42,0.18)] transition-transform duration-300 ${
           menuIsOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         aria-hidden={!menuIsOpen}
@@ -129,7 +118,6 @@ export default function LandingHeader() {
                 aria-current={isCurrentPage ? 'page' : undefined}
               >
                 <Icon className="h-5 w-5" aria-hidden="true" />
-
                 {item.label}
               </Link>
             )
@@ -145,11 +133,10 @@ export default function LandingHeader() {
         </div>
       </aside>
 
-      {/* Click-away menu backdrop */}
       {menuIsOpen && (
         <button
           type="button"
-          className="fixed inset-0 top-24 z-20 cursor-default bg-black/20"
+          className="fixed inset-0 top-16 z-20 cursor-default bg-black/20"
           onClick={() => {
             setMenuIsOpen(false)
           }}
