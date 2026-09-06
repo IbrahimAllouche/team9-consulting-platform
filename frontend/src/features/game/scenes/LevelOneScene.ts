@@ -10,8 +10,10 @@ const WORLD_HEIGHT = 720
 const FLOOR_TOP = 315
 const FLOOR_BOTTOM = 704
 const PLAYER_SPEED = 220
-const CHARACTER_WIDTH = 142
-const CHARACTER_HEIGHT = 205
+const CHARACTER_WIDTH = 165
+const CHARACTER_HEIGHT = 238
+const TABLE_WIDTH = 175
+const TABLE_HEIGHT = 154
 
 type ManagerDialogueStep = {
   message: string
@@ -57,27 +59,13 @@ export class LevelOneScene extends Phaser.Scene {
     this.load.image('manager', '/assets/characters/npcs/character-04.png')
     this.load.image('good-client', '/assets/characters/npcs/character-01.png')
     this.load.image('bad-client', '/assets/characters/npcs/character-02.png')
-    this.load.image(
-      'round-table',
-      '/assets/game/level-1/furniture/level-one-round-table.png'
-    )
-    this.load.image(
-      'couch',
-      '/assets/game/level-1/furniture/level-one-couch.png'
-    )
-    this.load.image(
-      'plant',
-      '/assets/game/level-1/furniture/level-one-plant.png'
-    )
+    this.load.image('round-table', '/assets/game/level-1/furniture/level-one-round-table.png')
+    this.load.image('couch', '/assets/game/level-1/furniture/level-one-couch.png')
+    this.load.image('plant', '/assets/game/level-1/furniture/level-one-plant.png')
   }
 
   create(): void {
-    this.physics.world.setBounds(
-      0,
-      FLOOR_TOP,
-      WORLD_WIDTH,
-      FLOOR_BOTTOM - FLOOR_TOP
-    )
+    this.physics.world.setBounds(0, FLOOR_TOP, WORLD_WIDTH, FLOOR_BOTTOM - FLOOR_TOP)
 
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
     this.cameras.main.setBackgroundColor('#efe1c7')
@@ -112,12 +100,19 @@ export class LevelOneScene extends Phaser.Scene {
         name: 'Jordan Lee',
         texture: 'good-client',
         personaId: 'test-level-1',
+        responseMode: 'llm',
         sprite: this.goodClient,
       },
       {
         name: 'Morgan Blake',
         texture: 'bad-client',
-        personaId: 'test-level-2',
+        responseMode: 'hardcoded',
+        hardcodedReplies: [
+          'Hi, nice to meet you!',
+          'Things are going well overall, although our team has one small workplace annoyance.',
+          'One of our developers uses a very loud keyboard, but it has not affected the team\'s performance.',
+          'We likely just need to speak with them or replace the keyboard, so it is not really a consulting problem.',
+        ],
         sprite: this.badClient,
       },
     ]
@@ -180,9 +175,7 @@ export class LevelOneScene extends Phaser.Scene {
     }) as typeof this.wasd
   }
 
-  private createInterfaceCamera(
-    worldObjects: Phaser.GameObjects.GameObject[]
-  ): void {
+  private createInterfaceCamera(worldObjects: Phaser.GameObjects.GameObject[]): void {
     this.interfaceCamera = this.cameras.add(
       0,
       0,
@@ -199,13 +192,7 @@ export class LevelOneScene extends Phaser.Scene {
 
   private createRoom(): void {
     this.add
-      .rectangle(
-        WORLD_WIDTH / 2,
-        WORLD_HEIGHT / 2,
-        WORLD_WIDTH,
-        WORLD_HEIGHT,
-        0xefe1c7
-      )
+      .rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, 0xefe1c7)
       .setDepth(0)
 
     const room = this.add.graphics().setDepth(1)
@@ -262,13 +249,7 @@ export class LevelOneScene extends Phaser.Scene {
     graphics.fillRect(centreX - 185, WORLD_HEIGHT - 22, 370, 22)
 
     graphics.fillStyle(0xc99712)
-    graphics.fillRoundedRect(
-      centreX - 185,
-      WORLD_HEIGHT - 25,
-      370,
-      16,
-      7
-    )
+    graphics.fillRoundedRect(centreX - 185, WORLD_HEIGHT - 25, 370, 16, 7)
   }
 
   private createFurniture(): void {
@@ -282,34 +263,23 @@ export class LevelOneScene extends Phaser.Scene {
     this.addTable(340, 570)
     this.addTable(965, 585)
 
-    const plant = this.add
-      .image(1135, 285, 'plant')
-      .setDisplaySize(155, 180)
-      .setDepth(285)
+    const plant = this.add.image(1135, 285, 'plant').setDisplaySize(155, 180).setDepth(285)
 
     this.effects.addPlantSway(plant)
 
     this.addObstacle(640, 295, 510, 78)
-    this.addObstacle(155, 420, 150, 82)
-    this.addObstacle(525, 420, 150, 82)
-    this.addObstacle(340, 585, 150, 82)
-    this.addObstacle(965, 585, 150, 82)
+    this.addObstacle(155, 420, 125, 68)
+    this.addObstacle(525, 420, 125, 68)
+    this.addObstacle(340, 585, 125, 68)
+    this.addObstacle(965, 585, 125, 68)
     this.addObstacle(1135, 300, 115, 95)
   }
 
   private addTable(x: number, y: number): void {
-    this.add
-      .image(x, y, 'round-table')
-      .setDisplaySize(210, 185)
-      .setDepth(y)
+    this.add.image(x, y, 'round-table').setDisplaySize(TABLE_WIDTH, TABLE_HEIGHT).setDepth(y)
   }
 
-  private addObstacle(
-    x: number,
-    y: number,
-    width: number,
-    height: number
-  ): void {
+  private addObstacle(x: number, y: number, width: number, height: number): void {
     const zone = this.add.zone(x, y, width, height)
 
     this.physics.add.existing(zone, true)
@@ -340,10 +310,7 @@ export class LevelOneScene extends Phaser.Scene {
     const managerBody = this.manager.body as Phaser.Physics.Arcade.Body
 
     managerBody.setSize(this.manager.width * 0.44, this.manager.height * 0.2)
-    managerBody.setOffset(
-      this.manager.width * 0.28,
-      this.manager.height * 0.76
-    )
+    managerBody.setOffset(this.manager.width * 0.28, this.manager.height * 0.76)
 
     this.manager.setDepth(this.manager.y)
 
@@ -392,12 +359,9 @@ export class LevelOneScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(5000)
 
-    const hitArea = this.add
-      .circle(0, 0, 31, 0x5b8c4a)
-      .setStrokeStyle(3, 0x2c2c2a)
-      .setInteractive({
-        useHandCursor: true,
-      })
+    const hitArea = this.add.circle(0, 0, 31, 0x5b8c4a).setStrokeStyle(3, 0x2c2c2a).setInteractive({
+      useHandCursor: true,
+    })
 
     this.effects.addButtonHover(hitArea)
 
@@ -424,18 +388,13 @@ export class LevelOneScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(5000)
 
-    const hitArea = this.add
-      .circle(0, 0, 31, 0x2c2c2a)
-      .setStrokeStyle(3, 0x000000)
-      .setInteractive({
-        useHandCursor: true,
-      })
+    const hitArea = this.add.circle(0, 0, 31, 0x2c2c2a).setStrokeStyle(3, 0x000000).setInteractive({
+      useHandCursor: true,
+    })
 
     this.effects.addButtonHover(hitArea)
 
-    const paper = this.add
-      .rectangle(0, 0, 24, 31, 0xf7fafc)
-      .setStrokeStyle(2, 0x2c2c2a)
+    const paper = this.add.rectangle(0, 0, 24, 31, 0xf7fafc).setStrokeStyle(2, 0x2c2c2a)
 
     const lines = this.add.graphics()
 
@@ -526,8 +485,7 @@ export class LevelOneScene extends Phaser.Scene {
          * TEST MANAGER DIALOGUE 2.
          */
         this.showManagerPanel({
-          message:
-            'Hi again! You can now explore the room using WASD or the arrow keys.',
+          message: 'Hi again! You can now explore the room using WASD or the arrow keys.',
 
           onContinue: () => {
             this.interfaceOpen = false
@@ -539,41 +497,24 @@ export class LevelOneScene extends Phaser.Scene {
   }
 
   private zoomToManager(): void {
-    this.cameras.main.pan(
-      this.manager.x + 155,
-      this.manager.y,
-      650,
-      'Sine.easeInOut'
-    )
+    this.cameras.main.pan(this.manager.x + 155, this.manager.y, 650, 'Sine.easeInOut')
 
     this.cameras.main.zoomTo(1.75, 650, 'Sine.easeInOut')
 
-    this.effects.showDialogueVignette(
-      WORLD_WIDTH,
-      WORLD_HEIGHT,
-      this.cameras.main
-    )
+    this.effects.showDialogueVignette(WORLD_WIDTH, WORLD_HEIGHT, this.cameras.main)
   }
 
   private restoreRoomCamera(onComplete: () => void): void {
     this.effects.hideDialogueVignette()
 
-    this.cameras.main.pan(
-      WORLD_WIDTH / 2,
-      WORLD_HEIGHT / 2,
-      500,
-      'Sine.easeInOut'
-    )
+    this.cameras.main.pan(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 500, 'Sine.easeInOut')
 
     this.cameras.main.zoomTo(1, 500, 'Sine.easeInOut')
 
     this.time.delayedCall(520, onComplete)
   }
 
-  private showManagerPanel({
-    message,
-    onContinue,
-  }: ManagerDialogueStep): void {
+  private showManagerPanel({ message, onContinue }: ManagerDialogueStep): void {
     this.closeManagerPanel()
 
     this.interfaceOpen = true
@@ -585,19 +526,10 @@ export class LevelOneScene extends Phaser.Scene {
     const panelLeft = WORLD_WIDTH - panelWidth - 12
     const panelX = panelLeft + panelWidth / 2
 
-    const panel = this.add
-      .container(0, 0)
-      .setScrollFactor(0)
-      .setDepth(6000)
+    const panel = this.add.container(0, 0).setScrollFactor(0).setDepth(6000)
 
     const panelBody = this.add
-      .rectangle(
-        panelX,
-        WORLD_HEIGHT / 2,
-        panelWidth,
-        WORLD_HEIGHT - 28,
-        0xf4f7f9
-      )
+      .rectangle(panelX, WORLD_HEIGHT / 2, panelWidth, WORLD_HEIGHT - 28, 0xf4f7f9)
       .setStrokeStyle(4, 0x111111)
 
     const header = this.add
@@ -613,35 +545,32 @@ export class LevelOneScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
 
-    const managerAvatarBorder = this.add.circle(
-      panelLeft + 52,
-      160,
-      31,
-      0x2c2c2a
-    )
+    const managerAvatarBorder = this.add.circle(panelLeft + 52, 160, 31, 0x2c2c2a)
 
-    const managerAvatar = this.add
-      .image(panelLeft + 52, 162, 'manager')
-      .setDisplaySize(47, 68)
+    const managerAvatar = this.add.image(panelLeft + 52, 162, 'manager').setDisplaySize(47, 68)
 
     const managerBubble = this.add
       .rectangle(panelLeft + 270, 185, 330, 125, 0xf4f7f9)
       .setStrokeStyle(2, 0xa1a7ad)
 
-    const managerText = this.add.text(
-      managerBubble.x - 145,
-      managerBubble.y - 48,
-      message,
-      {
-        color: '#2c2c2a',
-        fontFamily: 'Arial',
-        fontSize: '17px',
-        lineSpacing: 6,
-        wordWrap: {
-          width: 290,
-        },
-      }
-    )
+    const managerText = this.add.text(managerBubble.x - 145, managerBubble.y - 48, message, {
+      color: '#2c2c2a',
+      fontFamily: 'Arial',
+      fontSize: '17px',
+      lineSpacing: 6,
+      wordWrap: {
+        width: 290,
+      },
+    })
+
+    const managerBubbleTop = 125
+    const managerBubbleHeight = Math.max(85, Math.ceil(managerText.height) + 32)
+
+    managerBubble.setSize(managerBubble.width, managerBubbleHeight)
+    managerBubble.setY(managerBubbleTop + managerBubbleHeight / 2)
+    managerAvatarBorder.setY(managerBubble.y)
+    managerAvatar.setY(managerBubble.y + 2)
+    managerText.setPosition(managerBubble.x - managerBubble.width / 2 + 20, managerBubbleTop + 16)
 
     const playerAvatarBorder = this.add
       .circle(panelLeft + panelWidth - 52, 385, 31, 0x2c2c2a)
@@ -726,9 +655,7 @@ export class LevelOneScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(6100)
 
-    const inputElement = replyInput.getChildByName(
-      'managerTestReply'
-    ) as HTMLInputElement | null
+    const inputElement = replyInput.getChildByName('managerTestReply') as HTMLInputElement | null
 
     const sendX = panelLeft + panelWidth - 47
     const sendY = WORLD_HEIGHT - 78
@@ -744,14 +671,7 @@ export class LevelOneScene extends Phaser.Scene {
 
     sendTriangle.fillStyle(0x2c2c2a)
 
-    sendTriangle.fillTriangle(
-      sendX - 7,
-      sendY - 11,
-      sendX - 7,
-      sendY + 11,
-      sendX + 11,
-      sendY
-    )
+    sendTriangle.fillTriangle(sendX - 7, sendY - 11, sendX - 7, sendY + 11, sendX + 11, sendY)
 
     let replyHasBeenSent = false
 
@@ -770,6 +690,34 @@ export class LevelOneScene extends Phaser.Scene {
 
         playerReplyText.setText(reply).setVisible(true)
 
+        const playerBubbleHeight = Math.max(70, Math.ceil(playerReplyText.height) + 32)
+        const playerBubbleY = managerBubbleTop + managerBubbleHeight + 24 + playerBubbleHeight / 2
+
+        playerBubble.setSize(playerBubble.width, playerBubbleHeight)
+        playerBubble.setY(playerBubbleY)
+        playerAvatarBorder.setY(playerBubbleY)
+        playerAvatar.setY(playerBubbleY + 2)
+        playerReplyText.setPosition(
+          playerBubble.x - playerBubble.width / 2 + 20,
+          playerBubbleY - playerBubbleHeight / 2 + 16
+        )
+
+        const secondManagerBubbleHeight = Math.max(
+          70,
+          Math.ceil(secondManagerText.height) + 32
+        )
+        const secondManagerBubbleY =
+          playerBubbleY + playerBubbleHeight / 2 + 24 + secondManagerBubbleHeight / 2
+
+        secondManagerBubble.setSize(secondManagerBubble.width, secondManagerBubbleHeight)
+        secondManagerBubble.setY(secondManagerBubbleY)
+        secondManagerAvatarBorder.setY(secondManagerBubbleY)
+        secondManagerAvatar.setY(secondManagerBubbleY + 2)
+        secondManagerText.setPosition(
+          secondManagerBubble.x - secondManagerBubble.width / 2 + 20,
+          secondManagerBubbleY - secondManagerBubbleHeight / 2 + 16
+        )
+
         playerAvatarBorder.setVisible(true)
         playerAvatar.setVisible(true)
         playerBubble.setVisible(true)
@@ -787,19 +735,13 @@ export class LevelOneScene extends Phaser.Scene {
         ])
 
         this.effects.animateBubble(
-          [
-            secondManagerAvatarBorder,
-            secondManagerAvatar,
-            secondManagerBubble,
-            secondManagerText,
-          ],
+          [secondManagerAvatarBorder, secondManagerAvatar, secondManagerBubble, secondManagerText],
           300
         )
 
         if (inputElement) {
           inputElement.value = ''
-          inputElement.placeholder =
-            'Click the triangle again to continue'
+          inputElement.placeholder = 'Click the triangle again to continue'
           inputElement.disabled = true
         }
 
@@ -896,11 +838,7 @@ export class LevelOneScene extends Phaser.Scene {
 
     this.player.setVelocity(velocityX, velocityY)
 
-    this.effects.updateWalking(
-      this.player,
-      velocityX !== 0 || velocityY !== 0,
-      this.time.now
-    )
+    this.effects.updateWalking(this.player, velocityX !== 0 || velocityY !== 0, this.time.now)
   }
 
   private updateCharacterDepths(): void {
@@ -919,10 +857,7 @@ export class LevelOneScene extends Phaser.Scene {
     this.interfaceOpen = true
     this.controlsEnabled = false
 
-    const menu = this.add
-      .container(0, 0)
-      .setScrollFactor(0)
-      .setDepth(7000)
+    const menu = this.add.container(0, 0).setScrollFactor(0).setDepth(7000)
 
     const dimmer = this.add
       .rectangle(0, 0, WORLD_WIDTH, WORLD_HEIGHT, 0xefe1c7, 0.76)
@@ -930,23 +865,11 @@ export class LevelOneScene extends Phaser.Scene {
       .setInteractive()
 
     const panel = this.add
-      .rectangle(
-        WORLD_WIDTH / 2,
-        WORLD_HEIGHT / 2,
-        720,
-        220,
-        0xf3f6f8
-      )
+      .rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 720, 220, 0xf3f6f8)
       .setStrokeStyle(4, 0x111111)
 
     const topStrip = this.add
-      .rectangle(
-        WORLD_WIDTH / 2,
-        WORLD_HEIGHT / 2 - 98,
-        720,
-        18,
-        0xb98900
-      )
+      .rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2 - 98, 720, 18, 0xb98900)
       .setStrokeStyle(3, 0x111111)
 
     const resume = this.createMenuButton(
@@ -961,23 +884,13 @@ export class LevelOneScene extends Phaser.Scene {
       }
     )
 
-    const restart = this.createMenuButton(
-      WORLD_WIDTH / 2,
-      WORLD_HEIGHT / 2 + 15,
-      'Restart',
-      () => {
-        window.location.reload()
-      }
-    )
+    const restart = this.createMenuButton(WORLD_WIDTH / 2, WORLD_HEIGHT / 2 + 15, 'Restart', () => {
+      window.location.reload()
+    })
 
-    const quit = this.createMenuButton(
-      WORLD_WIDTH / 2 + 215,
-      WORLD_HEIGHT / 2 + 15,
-      'Quit',
-      () => {
-        window.location.assign('/dashboard')
-      }
-    )
+    const quit = this.createMenuButton(WORLD_WIDTH / 2 + 215, WORLD_HEIGHT / 2 + 15, 'Quit', () => {
+      window.location.assign('/dashboard')
+    })
 
     menu.add([dimmer, panel, topStrip, resume, restart, quit])
 
@@ -1031,20 +944,10 @@ export class LevelOneScene extends Phaser.Scene {
     this.interfaceOpen = true
     this.controlsEnabled = false
 
-    const panel = this.add
-      .container(0, 0)
-      .setScrollFactor(0)
-      .setDepth(7200)
+    const panel = this.add.container(0, 0).setScrollFactor(0).setDepth(7200)
 
     const dimmer = this.add
-      .rectangle(
-        0,
-        0,
-        WORLD_WIDTH,
-        WORLD_HEIGHT,
-        0xefe1c7,
-        0.82
-      )
+      .rectangle(0, 0, WORLD_WIDTH, WORLD_HEIGHT, 0xefe1c7, 0.82)
       .setOrigin(0)
       .setInteractive()
 
@@ -1054,22 +957,14 @@ export class LevelOneScene extends Phaser.Scene {
     const notebookY = WORLD_HEIGHT / 2
 
     const notebookBody = this.add
-      .rectangle(
-        notebookX,
-        notebookY,
-        notebookWidth,
-        notebookHeight,
-        0xf4f7f9
-      )
+      .rectangle(notebookX, notebookY, notebookWidth, notebookHeight, 0xf4f7f9)
       .setStrokeStyle(5, 0x111111)
 
     const header = this.add
       .rectangle(notebookX, 94, notebookWidth, 105, 0xb98900)
       .setStrokeStyle(5, 0x111111)
 
-    const iconCircle = this.add
-      .circle(notebookX, 94, 42, 0x2c2c2a)
-      .setStrokeStyle(4, 0x000000)
+    const iconCircle = this.add.circle(notebookX, 94, 42, 0x2c2c2a).setStrokeStyle(4, 0x000000)
 
     const iconPaper = this.add
       .rectangle(notebookX, 94, 27, 38, 0xf4f7f9)
@@ -1119,9 +1014,7 @@ export class LevelOneScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(7300)
 
-    const textarea = input.getChildByName(
-      'levelOneNotes'
-    ) as HTMLTextAreaElement | null
+    const textarea = input.getChildByName('levelOneNotes') as HTMLTextAreaElement | null
 
     if (textarea) {
       textarea.value = this.notes
@@ -1143,14 +1036,7 @@ export class LevelOneScene extends Phaser.Scene {
 
     saveTriangle.fillStyle(0x2c2c2a)
 
-    saveTriangle.fillTriangle(
-      saveX - 7,
-      saveY - 11,
-      saveX - 7,
-      saveY + 11,
-      saveX + 11,
-      saveY
-    )
+    saveTriangle.fillTriangle(saveX - 7, saveY - 11, saveX - 7, saveY + 11, saveX + 11, saveY)
 
     const saveNotebook = () => {
       if (textarea) {
