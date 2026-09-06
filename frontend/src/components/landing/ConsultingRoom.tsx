@@ -81,8 +81,6 @@ export default function ConsultingRoom({ stage }: ConsultingRoomProps) {
   const isLocked = effectiveStatus === 'locked'
   const isPlayable = isActive || isCompleted
 
-  const isExpandedRoomImage = stage.id !== 1 && !isLocked
-
   const isLevelTwoNewlyUnlocked = levelOneJustCompleted && stage.id === 2
 
   const isShowingUnlockAnimation = isUnlocking && stage.id === 1
@@ -112,7 +110,7 @@ export default function ConsultingRoom({ stage }: ConsultingRoomProps) {
       <section
         id={`stage-${stage.id}`}
         style={roomAnimationStyle}
-        className={`game-room border-charcoal relative min-h-72 overflow-hidden border-[4px] transition-all duration-500 xl:h-full xl:min-h-0 ${
+        className={`game-room border-charcoal relative min-h-80 overflow-hidden border-[4px] transition-all duration-500 ${
           isPlayable
             ? 'game-room-active cursor-pointer bg-[#ffdda3]'
             : 'game-room-locked cursor-not-allowed bg-white'
@@ -136,27 +134,27 @@ export default function ConsultingRoom({ stage }: ConsultingRoomProps) {
           </div>
         )}
 
-        <div className="relative z-20 flex items-start gap-2 p-3">
+        <div className="relative z-20 flex items-start gap-3 p-4">
           <div
-            className={`border-charcoal flex h-11 w-10 shrink-0 items-center justify-center rounded-[35%] border-[3px] text-base font-extrabold text-white shadow-[2px_2px_0_var(--charcoal)] ${
+            className={`border-charcoal flex h-14 w-12 shrink-0 items-center justify-center rounded-[35%] border-[3px] text-xl font-extrabold text-white shadow-[3px_3px_0_var(--charcoal)] ${
               isCompleted ? 'bg-plant-green' : 'bg-dark-blue'
             }`}
           >
-            {isCompleted ? <CheckCircle2 className="h-6 w-6" aria-label="Completed" /> : stage.id}
+            {isCompleted ? <CheckCircle2 className="h-7 w-7" aria-label="Completed" /> : stage.id}
           </div>
 
           <div className="min-w-0 flex-1">
-            <div className="relative min-w-0">
+            <div className="flex items-start gap-2">
               <h2
                 id={`stage-${stage.id}-title`}
-                className="text-charcoal min-w-0 pr-7 text-sm leading-tight font-extrabold 2xl:text-base"
+                className="text-charcoal text-lg leading-tight font-extrabold"
               >
                 {stage.name}
               </h2>
 
               {isLocked && (
                 <LockKeyhole
-                  className="room-lock text-charcoal absolute top-0 right-0 z-30 h-5 w-5"
+                  className="room-lock text-charcoal mt-0.5 h-5 w-5 shrink-0"
                   aria-label="Locked"
                 />
               )}
@@ -166,7 +164,7 @@ export default function ConsultingRoom({ stage }: ConsultingRoomProps) {
               <button
                 type="button"
                 onClick={unlockLevelOne}
-                className="start-room-button border-charcoal bg-dark-blue hover:bg-building-near mt-2 inline-flex items-center gap-2 rounded-lg border-[3px] px-4 py-1.5 text-xs font-extrabold text-white transition"
+                className="start-room-button border-charcoal bg-dark-blue hover:bg-building-near mt-3 inline-flex items-center gap-2 rounded-lg border-[3px] px-5 py-2 text-sm font-extrabold text-white transition"
               >
                 <Sparkles className="h-4 w-4" />
                 UNLOCK LEVEL 1
@@ -174,7 +172,7 @@ export default function ConsultingRoom({ stage }: ConsultingRoomProps) {
             ) : isPlayable ? (
               <Link
                 href={stage.href}
-                className={`start-room-button border-charcoal mt-2 inline-block rounded-lg border-[3px] px-4 py-1.5 text-xs font-extrabold text-white transition ${
+                className={`start-room-button border-charcoal mt-3 inline-block rounded-lg border-[3px] px-5 py-2 text-sm font-extrabold text-white transition ${
                   isCompleted
                     ? 'bg-plant-green hover:bg-dark-blue'
                     : 'bg-dark-blue hover:bg-building-near'
@@ -183,7 +181,7 @@ export default function ConsultingRoom({ stage }: ConsultingRoomProps) {
                 {isCompleted ? 'REPLAY' : isLevelTwoNewlyUnlocked ? 'ENTER LEVEL 2' : 'START HERE'}
               </Link>
             ) : (
-              <p className="text-charcoal mt-1 max-w-48 text-[11px] leading-4">
+              <p className="text-charcoal mt-2 max-w-56 text-sm leading-6">
                 {stage.shortDescription}
               </p>
             )}
@@ -191,42 +189,23 @@ export default function ConsultingRoom({ stage }: ConsultingRoomProps) {
         </div>
 
         <div
-          className={`absolute z-0 overflow-hidden opacity-100 transition-all duration-500 ${
-            stage.id === 1
-              ? 'inset-x-0 top-24 bottom-1'
-              : isExpandedRoomImage
-                ? 'inset-x-0 top-20 bottom-1'
-                : stage.id <= 3
-                  ? 'inset-x-2 top-28 bottom-2'
-                  : 'inset-x-2 top-32 bottom-2'
-          }`}
+          className={`absolute z-0 overflow-hidden ${
+            stage.id === 1 ? 'inset-x-0 top-35 bottom-0' : 'inset-x-2 top-28 bottom-2'
+          } ${isLocked ? 'opacity-55' : 'opacity-100'}`}
         >
           <div
-            className={`relative h-full w-full transition-transform duration-500 ${
-              stage.id === 1
-                ? 'translate-y-2'
-                : isExpandedRoomImage
-                  ? 'origin-bottom scale-[1.1]'
-                  : ''
-            }`}
+            className={`relative h-full w-full ${stage.id === 1 ? 'origin-top scale-[1.12]' : ''}`}
           >
             <Image
               src={imageSource}
               alt={imageDescription}
               fill
               sizes="(min-width: 1280px) 25vw, (min-width: 768px) 45vw, 90vw"
-              className="room-furniture object-contain object-bottom"
+              className="room-furniture object-contain object-top"
               priority={stage.id === 1}
             />
           </div>
         </div>
-
-        {isLocked && (
-          <div
-            className="pointer-events-none absolute inset-0 z-30 bg-white/40"
-            aria-hidden="true"
-          />
-        )}
       </section>
     </>
   )
