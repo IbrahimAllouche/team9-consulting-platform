@@ -108,19 +108,21 @@ export class LevelOneScene extends Phaser.Scene {
     this.createInterfaceCamera(worldObjects)
 
     const clients: ClientDefinition[] = [
-      {
-        name: 'Jordan Lee',
-        texture: 'good-client',
-        personaId: 'test-level-1',
-        sprite: this.goodClient,
-      },
-      {
-        name: 'Morgan Blake',
-        texture: 'bad-client',
-        personaId: 'test-level-2',
-        sprite: this.badClient,
-      },
-    ]
+  {
+    name: 'Jordan Lee',
+    texture: 'good-client',
+    personaId: 'test-level-1',
+    responseMode: 'llm',
+    sprite: this.goodClient,
+  },
+  {
+    name: 'Morgan Blake',
+    texture: 'bad-client',
+    responseMode: 'hardcoded',
+    hardcodedReply: 'Hi, nice to meet you!',
+    sprite: this.badClient,
+  },
+]
 
     this.clientDialogue = new ClientDialogueController({
       scene: this,
