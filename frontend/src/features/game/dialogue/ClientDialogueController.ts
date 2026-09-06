@@ -5,10 +5,7 @@ import { requestPersonaReply } from './personaDialogue'
 export type ClientDefinition = {
   name: string
   texture: string
-  personaId?: string
-  responseMode: 'llm' | 'hardcoded'
-  hardcodedReply?: string
-  hardcodedReplies?: readonly string[]
+  personaId: string
   sprite: Phaser.GameObjects.Image
 }
 
@@ -49,7 +46,6 @@ export class ClientDialogueController {
   private activeClient?: ClientDefinition
   private panel?: Phaser.GameObjects.Container
   private replyInput?: Phaser.GameObjects.DOMElement
-  private dialogueLog?: Phaser.GameObjects.DOMElement
 
   constructor({
     scene,
@@ -124,12 +120,10 @@ export class ClientDialogueController {
 
   destroy(): void {
     this.replyInput?.destroy()
-    this.dialogueLog?.destroy()
     this.panel?.destroy(true)
     this.proximityPrompt.destroy(true)
 
     this.replyInput = undefined
-    this.dialogueLog = undefined
     this.panel = undefined
     this.activeClient = undefined
   }
@@ -239,53 +233,83 @@ export class ClientDialogueController {
       })
       .setOrigin(0.5)
 
-    const dialogueLog = this.scene.add
-      .dom(panelX, this.worldHeight / 2 + 8)
-      .createFromHTML(
-        `<div data-client-dialogue-log role="log" aria-live="polite" style="width: 430px; height: 470px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; overflow-x: hidden; padding: 10px 12px 18px; box-sizing: border-box;"></div>`
-      )
-      .setScrollFactor(0)
-      .setDepth(6600)
+    /*
+     * Initial temporary client message.
+     */
+    const clientAvatarBorder = this.scene.add.circle(panelLeft + 52, 160, 31, 0x2c2c2a)
 
-    const logElement = dialogueLog.node.querySelector<HTMLDivElement>('[data-client-dialogue-log]')
+    const clientAvatar = this.scene.add
+      .image(panelLeft + 52, 162, client.texture)
+      .setDisplaySize(47, 68)
 
-    if (!logElement) {
-      dialogueLog.destroy()
-      panel.destroy(true)
-      throw new Error('Client dialogue log could not be created.')
-    }
+    const clientBubble = this.scene.add
+      .rectangle(panelLeft + 270, 175, 330, 100, 0xf4f7f9)
+      .setStrokeStyle(2, 0xa1a7ad)
 
-    const addMessage = (speaker: 'client' | 'player', message: string): HTMLDivElement => {
-      const row = document.createElement('div')
-      row.style.cssText = `display:flex;align-items:flex-start;gap:10px;flex-shrink:0;${speaker === 'player' ? 'flex-direction:row-reverse;' : ''}`
+    const clientText = this.scene.add.text(clientBubble.x - 145, clientBubble.y - 18, 'Hi!', {
+      color: '#2c2c2a',
+      fontFamily: 'Arial',
+      fontSize: '18px',
+      wordWrap: {
+        width: 290,
+      },
+    })
 
-      const avatarFrame = document.createElement('div')
-      avatarFrame.style.cssText =
-        'width:52px;height:52px;flex:0 0 52px;border:3px solid #2c2c2a;border-radius:50%;overflow:hidden;background:#fff;box-sizing:border-box;'
+    /*
+     * User reply elements start hidden.
+     */
+    const playerAvatarBorder = this.scene.add
+      .circle(panelLeft + panelWidth - 52, 345, 31, 0x2c2c2a)
+      .setVisible(false)
 
-      const avatar = document.createElement('img')
-      avatar.src =
-        speaker === 'player'
-          ? '/assets/characters/npcs/character-03.png'
-          : client.texture === 'good-client'
-            ? '/assets/characters/npcs/character-01.png'
-            : '/assets/characters/npcs/character-02.png'
-      avatar.alt = speaker === 'player' ? 'You' : client.name
-      avatar.style.cssText = 'width:100%;height:100%;object-fit:cover;'
-      avatarFrame.appendChild(avatar)
+    const playerAvatar = this.scene.add
+      .image(panelLeft + panelWidth - 52, 347, 'player')
+      .setDisplaySize(47, 68)
+      .setVisible(false)
 
-      const bubble = document.createElement('div')
-      bubble.textContent = message
-      bubble.style.cssText = `width:fit-content;max-width:320px;padding:12px 14px;border:2px solid ${speaker === 'player' ? '#7e9975' : '#a1a7ad'};border-radius:12px;background:${speaker === 'player' ? '#e8f0e5' : '#fff'};color:#2c2c2a;font:16px/1.4 Arial,sans-serif;white-space:pre-wrap;overflow-wrap:anywhere;box-sizing:border-box;`
+    const playerBubble = this.scene.add
+      .rectangle(panelLeft + 190, 345, 260, 90, 0xe8f0e5)
+      .setStrokeStyle(2, 0x7e9975)
+      .setVisible(false)
 
-      row.append(avatarFrame, bubble)
-      logElement.appendChild(row)
-      logElement.scrollTop = logElement.scrollHeight
+    const playerText = this.scene.add
+      .text(playerBubble.x - 110, playerBubble.y - 30, '', {
+        color: '#2c2c2a',
+        fontFamily: 'Arial',
+        fontSize: '16px',
+        wordWrap: {
+          width: 220,
+        },
+      })
+      .setVisible(false)
 
-      return bubble
-    }
+    /*
+     * Final temporary client response.
+     */
+    const finalClientAvatarBorder = this.scene.add
+      .circle(panelLeft + 52, 475, 31, 0x2c2c2a)
+      .setVisible(false)
 
-    addMessage('client', 'Hi!')
+    const finalClientAvatar = this.scene.add
+      .image(panelLeft + 52, 477, client.texture)
+      .setDisplaySize(47, 68)
+      .setVisible(false)
+
+    const finalClientBubble = this.scene.add
+      .rectangle(panelLeft + 270, 475, 330, 90, 0xf4f7f9)
+      .setStrokeStyle(2, 0xa1a7ad)
+      .setVisible(false)
+
+    const finalClientText = this.scene.add
+      .text(finalClientBubble.x - 145, finalClientBubble.y - 28, 'Hi, nice to meet you!', {
+        color: '#2c2c2a',
+        fontFamily: 'Arial',
+        fontSize: '16px',
+        wordWrap: {
+          width: 290,
+        },
+      })
+      .setVisible(false)
 
     const replyInput = this.scene.add
       .dom(panelLeft + 205, this.worldHeight - 78)
@@ -295,7 +319,7 @@ export class ClientDialogueController {
           name="clientMockReply"
           maxlength="120"
           aria-label="Reply to ${client.name}"
-          placeholder="Type your reply..."
+          placeholder="Type a quick test reply..."
           style="
             width: 310px;
             height: 54px;
@@ -338,94 +362,81 @@ export class ClientDialogueController {
     sendTriangle.fillTriangle(sendX - 7, sendY - 11, sendX - 7, sendY + 11, sendX + 11, sendY)
 
     let replySent = false
-    let requestInProgress = false
-    let hardcodedReplyIndex = 0
+let requestInProgress = false
 
-    const sendOrClose = async () => {
-      this.effects.pressButton(sendButton)
+const sendOrClose = async () => {
+  this.effects.pressButton(sendButton)
 
-      if (!replySent) {
-        const reply = inputElement?.value.trim() ?? ''
+  if (!replySent) {
+    const reply = inputElement?.value.trim() ?? ''
 
-        if (!reply || requestInProgress) {
-          inputElement?.focus()
-          return
-        }
-
-        requestInProgress = true
-        addMessage('player', reply)
-
-        if (inputElement) {
-          inputElement.value = ''
-          inputElement.disabled = true
-          inputElement.placeholder = 'Waiting for client response...'
-        }
-
-        const pendingClientBubble = addMessage('client', 'Thinking...')
-
-        if (client.responseMode === 'hardcoded') {
-          const hardcodedReplies =
-            client.hardcodedReplies ?? [client.hardcodedReply ?? 'Hi, nice to meet you!']
-
-          const hardcodedResponse =
-            hardcodedReplies[hardcodedReplyIndex] ?? hardcodedReplies.at(-1) ?? 'Hi, nice to meet you!'
-
-          pendingClientBubble.textContent = hardcodedResponse
-          logElement.scrollTop = logElement.scrollHeight
-
-          hardcodedReplyIndex += 1
-
-          const hardcodedConversationComplete = hardcodedReplyIndex >= hardcodedReplies.length
-
-          replySent = hardcodedConversationComplete
-          requestInProgress = false
-
-          if (inputElement) {
-            inputElement.disabled = hardcodedConversationComplete
-            inputElement.placeholder = hardcodedConversationComplete
-              ? 'Click the triangle again to close'
-              : 'Type your next reply...'
-
-            if (!hardcodedConversationComplete) {
-              inputElement.focus()
-            }
-          }
-
-          return
-        } else {
-          if (!client.personaId) {
-            pendingClientBubble.textContent = 'Unable to load client response.'
-          } else {
-            const result = await requestPersonaReply({
-              message: reply,
-              personaId: client.personaId,
-            })
-
-            pendingClientBubble.textContent = result.reply
-          }
-
-          logElement.scrollTop = logElement.scrollHeight
-        }
-
-        replySent = true
-        requestInProgress = false
-
-        if (inputElement) {
-          inputElement.placeholder = 'Click the triangle again to close'
-        }
-
-        return
-      }
-
-      if (!requestInProgress) {
-        this.closeDialogue()
-      }
+    if (!reply || requestInProgress) {
+      inputElement?.focus()
+      return
     }
+
+    requestInProgress = true
+
+    playerText.setText(reply).setVisible(true)
+
+    playerAvatarBorder.setVisible(true)
+    playerAvatar.setVisible(true)
+    playerBubble.setVisible(true)
+
+    this.effects.animateBubble([
+      playerAvatarBorder,
+      playerAvatar,
+      playerBubble,
+      playerText,
+    ])
+
+    if (inputElement) {
+      inputElement.value = ''
+      inputElement.disabled = true
+      inputElement.placeholder = 'Waiting for client response...'
+    }
+
+    finalClientText.setText('Thinking...')
+
+    finalClientAvatarBorder.setVisible(true)
+    finalClientAvatar.setVisible(true)
+    finalClientBubble.setVisible(true)
+    finalClientText.setVisible(true)
+
+    this.effects.animateBubble(
+      [
+        finalClientAvatarBorder,
+        finalClientAvatar,
+        finalClientBubble,
+        finalClientText,
+      ],
+      300
+    )
+
+    const result = await requestPersonaReply({
+      message: reply,
+      personaId: client.personaId,
+    })
+
+    finalClientText.setText(result.reply)
+
+    replySent = true
+    requestInProgress = false
+
+    if (inputElement) {
+      inputElement.placeholder = 'Click the triangle again to close'
+    }
+
+    return
+  }
+
+  if (!requestInProgress) {
+    this.closeDialogue()
+  }
+}
     sendButton.on('pointerdown', sendOrClose)
 
     inputElement?.addEventListener('keydown', (event) => {
-      event.stopPropagation()
-
       if (event.key === 'Enter') {
         event.preventDefault()
         sendOrClose()
@@ -436,6 +447,18 @@ export class ClientDialogueController {
       panelBody,
       header,
       title,
+      clientAvatarBorder,
+      clientAvatar,
+      clientBubble,
+      clientText,
+      playerAvatarBorder,
+      playerAvatar,
+      playerBubble,
+      playerText,
+      finalClientAvatarBorder,
+      finalClientAvatar,
+      finalClientBubble,
+      finalClientText,
       sendButton,
       sendTriangle,
     ])
@@ -443,13 +466,16 @@ export class ClientDialogueController {
     /*
      * Dialogue stays fixed while the room camera zooms.
      */
-    this.mainCamera.ignore([panel, replyInput, dialogueLog])
+    this.mainCamera.ignore([panel, replyInput])
 
     this.panel = panel
     this.replyInput = replyInput
-    this.dialogueLog = dialogueLog
 
     this.effects.animatePanel(panel)
+
+    this.effects.animateBubble([clientAvatarBorder, clientAvatar, clientBubble, clientText], 250)
+
+    this.effects.typeMessage(clientText, 'Hi!', 400)
 
     this.effects.addButtonHover(sendButton)
   }
@@ -457,9 +483,6 @@ export class ClientDialogueController {
   private closeDialogue(): void {
     this.replyInput?.destroy()
     this.replyInput = undefined
-
-    this.dialogueLog?.destroy()
-    this.dialogueLog = undefined
 
     this.panel?.destroy(true)
     this.panel = undefined
