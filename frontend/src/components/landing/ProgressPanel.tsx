@@ -6,12 +6,6 @@ type ProgressPanelProps = {
   progress: ConsultantProgress
 }
 
-/**
- * Compact consultant progress sidebar.
- *
- * Laptop screens use smaller cards so the dollhouse receives most of the
- * available width. The cards expand again on extra-wide desktop screens.
- */
 export default function ProgressPanel({ progress }: ProgressPanelProps) {
   const xpPercentage =
     progress.requiredXp > 0
@@ -24,15 +18,15 @@ export default function ProgressPanel({ progress }: ProgressPanelProps) {
       : 0
 
   return (
-    <aside className="grid content-start gap-4 2xl:gap-6" aria-label="Consultant progress">
-      {/* Compact level and XP card */}
-      <section className="game-progress-panel border-charcoal bg-cloud-white rounded-2xl border-[4px] p-4 shadow-[5px_6px_0_var(--charcoal)] 2xl:rounded-3xl 2xl:border-[5px] 2xl:p-6 2xl:shadow-[7px_8px_0_var(--charcoal)]">
-        <h2 className="text-dark-blue text-xl font-extrabold 2xl:text-2xl">
-          Level {progress.level}
-        </h2>
+    <aside
+      className="grid content-start gap-3 xl:h-full xl:grid-rows-[auto_auto_1fr]"
+      aria-label="Consultant progress"
+    >
+      <section className="game-progress-panel border-charcoal bg-cloud-white rounded-xl border-[3px] p-3 shadow-[4px_4px_0_var(--charcoal)]">
+        <h2 className="text-dark-blue text-lg font-extrabold">Level {progress.level}</h2>
 
         <div
-          className="bg-warm-grey border-charcoal mt-4 h-4 overflow-hidden rounded-full border-[2px] 2xl:mt-6 2xl:h-5 2xl:border-[3px]"
+          className="bg-warm-grey border-charcoal mt-3 h-3 overflow-hidden rounded-full border-[2px]"
           role="progressbar"
           aria-label="Experience points"
           aria-valuemin={0}
@@ -45,17 +39,16 @@ export default function ProgressPanel({ progress }: ProgressPanelProps) {
           />
         </div>
 
-        <p className="text-charcoal mt-3 text-sm font-semibold 2xl:mt-4 2xl:text-base">
+        <p className="text-charcoal mt-2 text-xs font-semibold">
           {progress.currentXp} / {progress.requiredXp} XP
         </p>
       </section>
 
-      {/* Compact consulting-loop progress card */}
-      <section className="game-progress-panel border-charcoal bg-cloud-white rounded-2xl border-[4px] p-4 text-center shadow-[5px_6px_0_var(--charcoal)] 2xl:rounded-3xl 2xl:border-[5px] 2xl:p-6 2xl:shadow-[7px_8px_0_var(--charcoal)]">
-        <h2 className="text-dark-blue text-xl font-extrabold 2xl:text-2xl">Your progress</h2>
+      <section className="game-progress-panel border-charcoal bg-cloud-white rounded-xl border-[3px] p-3 text-center shadow-[4px_4px_0_var(--charcoal)]">
+        <h2 className="text-dark-blue text-lg font-extrabold">Your progress</h2>
 
         <div
-          className="progress-donut border-charcoal relative mx-auto mt-5 flex h-32 w-32 items-center justify-center rounded-full border-[3px] 2xl:mt-7 2xl:h-44 2xl:w-44"
+          className="progress-donut border-charcoal relative mx-auto mt-3 flex h-24 w-24 items-center justify-center rounded-full border-[3px]"
           style={{
             background: `conic-gradient(
               var(--plant-green) 0% ${stagePercentage}%,
@@ -65,27 +58,24 @@ export default function ProgressPanel({ progress }: ProgressPanelProps) {
           role="img"
           aria-label={`${stagePercentage}% of consulting stages complete`}
         >
-          <div className="border-charcoal bg-cloud-white absolute inset-4 flex items-center justify-center rounded-full border-[3px] 2xl:inset-6">
-            <span className="text-dark-blue text-3xl font-extrabold 2xl:text-4xl">
-              {stagePercentage}%
-            </span>
+          <div className="border-charcoal bg-cloud-white absolute inset-3 flex items-center justify-center rounded-full border-[3px]">
+            <span className="text-dark-blue text-2xl font-extrabold">{stagePercentage}%</span>
           </div>
         </div>
 
-        <p className="text-charcoal mt-4 text-sm 2xl:mt-6 2xl:text-lg">
+        <p className="text-charcoal mt-2 text-xs">
           {progress.completedStages} / {progress.totalStages} stages complete
         </p>
       </section>
 
-      {/* Compact statistics card */}
-      <section className="game-progress-panel border-charcoal bg-cloud-white rounded-2xl border-[4px] p-4 shadow-[5px_6px_0_var(--charcoal)] 2xl:rounded-3xl 2xl:border-[5px] 2xl:p-6 2xl:shadow-[7px_8px_0_var(--charcoal)]">
-        <h2 className="text-dark-blue text-xl font-extrabold 2xl:text-2xl">Your stats</h2>
+      <section className="game-progress-panel border-charcoal bg-cloud-white rounded-xl border-[3px] p-3 shadow-[4px_4px_0_var(--charcoal)]">
+        <h2 className="text-dark-blue text-lg font-extrabold">Your stats</h2>
 
-        <dl className="mt-4 space-y-3 text-sm 2xl:mt-6 2xl:space-y-4 2xl:text-base">
+        <dl className="mt-3 space-y-2 text-xs">
           <div className="flex items-center justify-between gap-2">
-            <dt className="text-charcoal flex items-center gap-2 2xl:gap-3">
+            <dt className="text-charcoal flex items-center gap-2">
               <span
-                className="border-charcoal bg-honey-wood h-3.5 w-3.5 shrink-0 rounded-full border-2 2xl:h-4 2xl:w-4"
+                className="border-charcoal bg-honey-wood h-3 w-3 shrink-0 rounded-full border-2"
                 aria-hidden="true"
               />
               XP earned
@@ -95,9 +85,9 @@ export default function ProgressPanel({ progress }: ProgressPanelProps) {
           </div>
 
           <div className="flex items-center justify-between gap-2">
-            <dt className="text-charcoal flex items-center gap-2 2xl:gap-3">
+            <dt className="text-charcoal flex items-center gap-2">
               <span
-                className="border-charcoal bg-plant-green h-3.5 w-3.5 shrink-0 rounded-full border-2 2xl:h-4 2xl:w-4"
+                className="border-charcoal bg-plant-green h-3 w-3 shrink-0 rounded-full border-2"
                 aria-hidden="true"
               />
               Badges
@@ -107,9 +97,9 @@ export default function ProgressPanel({ progress }: ProgressPanelProps) {
           </div>
 
           <div className="flex items-center justify-between gap-2">
-            <dt className="text-charcoal flex items-center gap-2 2xl:gap-3">
+            <dt className="text-charcoal flex items-center gap-2">
               <span
-                className="border-charcoal bg-light-blue h-3.5 w-3.5 shrink-0 rounded-full border-2 2xl:h-4 2xl:w-4"
+                className="border-charcoal bg-light-blue h-3 w-3 shrink-0 rounded-full border-2"
                 aria-hidden="true"
               />
               Duration
