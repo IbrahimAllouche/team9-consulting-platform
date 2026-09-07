@@ -1,21 +1,15 @@
+import type { CSSProperties } from 'react'
 import type { Metadata } from 'next'
 import { getServerSession } from '@/actions/auth.actions'
 import { adminDb } from '@/lib/firebase/admin'
 import ConsultingRoom from '@/components/landing/ConsultingRoom'
 import ProgressPanel from '@/components/landing/ProgressPanel'
 import { consultingStages, initialConsultantProgress } from '@/components/landing/landingData'
-import type { CSSProperties } from 'react'
 
 export const metadata: Metadata = {
   title: 'Consulting Lobby',
 }
 
-/**
- * Main landing page and game lobby.
- *
- * This remains a server component so the user's Firebase profile can be read
- * securely without exposing Firebase Admin credentials to the browser.
- */
 export default async function DashboardPage() {
   const session = await getServerSession()
 
@@ -34,10 +28,6 @@ export default async function DashboardPage() {
   const proposalStage = consultingStages.find((stage) => stage.id === 5)
   const closeDealStage = consultingStages.find((stage) => stage.id === 6)
 
-  /*
-   * All six stages are required for the consulting loop. Failing immediately
-   * gives developers a clear error if one is accidentally removed later.
-   */
   if (
     !findLeadStage ||
     !outreachStage ||
@@ -50,11 +40,7 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="bg-warm-cream min-h-[calc(100vh-6rem)]">
-      {/*
-       * Small ambient particles give the lobby some life while remaining behind all
-       * interactive content.
-       */}
+    <div className="bg-warm-cream min-h-[calc(100dvh-4rem)] xl:h-[calc(100dvh-4rem)] xl:overflow-hidden">
       <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
         {[
           { left: '6%', top: '24%', size: '5px', duration: '6s', delay: '-1s' },
@@ -79,58 +65,41 @@ export default async function DashboardPage() {
           />
         ))}
       </div>
-      <div className="mx-auto max-w-[1900px] px-4 py-8 sm:px-6 lg:px-6 2xl:px-10 2xl:py-10">
-        {/* Landing-page introduction */}
-        <section aria-labelledby="lobby-heading">
-          <p className="text-dark-blue text-sm font-extrabold tracking-[0.16em] uppercase">
+
+      <div className="mx-auto flex h-full max-w-[1900px] flex-col px-4 py-3 sm:px-5 lg:px-6 2xl:px-8">
+        <section className="shrink-0" aria-labelledby="lobby-heading">
+          <p className="text-dark-blue text-[10px] font-extrabold tracking-[0.12em] uppercase sm:text-xs">
             Welcome, {consultantName}
           </p>
 
           <h1
             id="lobby-heading"
-            className="text-charcoal mt-2 text-[clamp(2rem,4vw,3.4rem)] leading-tight font-extrabold"
+            className="text-charcoal mt-0.5 text-[clamp(1.15rem,1.8vw,1.65rem)] leading-tight font-extrabold"
           >
             Your consultancy journey starts here
           </h1>
 
-          <p className="text-charcoal mt-3 text-lg font-semibold sm:text-xl">
+          <p className="text-charcoal mt-0.5 text-xs font-semibold sm:text-sm">
             Complete each stage of the consulting loop.
           </p>
         </section>
 
-        {/*
-         * The connected dollhouse occupies the main area. Progress information
-         * sits to its right on wide screens and moves underneath on tablets
-         * and phones.
-         */}
-        <div className="mt-8 grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_240px] 2xl:mt-10 2xl:grid-cols-[minmax(0,1fr)_300px] 2xl:gap-8">
+        <div className="mt-3 grid items-start gap-4 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1fr)_220px] 2xl:grid-cols-[minmax(0,1fr)_260px] 2xl:gap-5">
           <section
-            className="border-charcoal bg-honey-wood overflow-hidden rounded-3xl border-[6px] p-3 shadow-[8px_9px_0_var(--wood-shadow)]"
+            className="border-charcoal bg-honey-wood overflow-hidden rounded-2xl border-[5px] p-2 shadow-[6px_7px_0_var(--wood-shadow)] xl:h-full"
             aria-label="Consulting stages"
           >
-            <div className="relative z-10 grid gap-1 lg:grid-cols-[minmax(230px,0.82fr)_minmax(0,2fr)] 2xl:grid-cols-[minmax(280px,0.9fr)_minmax(0,2fr)]">
-              {/*
-               * Find a Lead is taller than the other rooms because it acts as
-               * the lobby and entrance into the consulting journey.
-               *
-               * Its PNG already includes the entrance doors, so no separate
-               * CSS door is added here.
-               */}
-              <div className="min-h-[650px] [&>section]:h-full">
+            <div className="relative z-10 grid gap-1 lg:grid-cols-[minmax(300px,0.9fr)_minmax(0,2fr)] xl:h-full 2xl:grid-cols-[minmax(330px,0.9fr)_minmax(0,2fr)]">
+              <div className="min-h-[520px] xl:h-full xl:min-h-0 [&>section]:h-full">
                 <ConsultingRoom stage={findLeadStage} />
               </div>
 
-              {/* Remaining five connected consulting rooms */}
-              <div className="grid gap-1 sm:grid-cols-2">
+              <div className="grid gap-1 sm:grid-cols-2 xl:min-h-0 xl:grid-rows-2">
                 <ConsultingRoom stage={outreachStage} />
                 <ConsultingRoom stage={preparationStage} />
 
-                {/*
-                 * The lower floor follows the approved order:
-                 * Close Deal, Proposal and Negotiation, then Client Meeting.
-                 */}
-                <div className="sm:col-span-2">
-                  <div className="grid gap-1 md:grid-cols-3">
+                <div className="sm:col-span-2 xl:min-h-0">
+                  <div className="grid gap-1 md:grid-cols-3 xl:h-full">
                     <ConsultingRoom stage={closeDealStage} />
                     <ConsultingRoom stage={proposalStage} />
                     <ConsultingRoom stage={clientMeetingStage} />
