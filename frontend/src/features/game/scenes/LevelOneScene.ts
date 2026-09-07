@@ -110,7 +110,7 @@ export class LevelOneScene extends Phaser.Scene {
         hardcodedReplies: [
           'Hi, nice to meet you!',
           'Things are going well overall, although our team has one small workplace annoyance.',
-          'One of our developers uses a very loud keyboard, but it has not affected the team\'s performance.',
+          "One of our developers uses a very loud keyboard, but it has not affected the team's performance.",
           'We likely just need to speak with them or replace the keyboard, so it is not really a consulting problem.',
         ],
         sprite: this.badClient,
@@ -702,10 +702,7 @@ export class LevelOneScene extends Phaser.Scene {
           playerBubbleY - playerBubbleHeight / 2 + 16
         )
 
-        const secondManagerBubbleHeight = Math.max(
-          70,
-          Math.ceil(secondManagerText.height) + 32
-        )
+        const secondManagerBubbleHeight = Math.max(70, Math.ceil(secondManagerText.height) + 32)
         const secondManagerBubbleY =
           playerBubbleY + playerBubbleHeight / 2 + 24 + secondManagerBubbleHeight / 2
 
