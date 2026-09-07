@@ -355,6 +355,8 @@ export class ClientDialogueController {
         requestInProgress = true
         addMessage('player', reply)
 
+        const playerEndedLlmConversation = /^bye for now[.!?]*$/i.test(reply)
+
         if (inputElement) {
           inputElement.value = ''
           inputElement.disabled = true
@@ -410,11 +412,18 @@ export class ClientDialogueController {
           logElement.scrollTop = logElement.scrollHeight
         }
 
-        replySent = true
+        replySent = playerEndedLlmConversation
         requestInProgress = false
 
         if (inputElement) {
-          inputElement.placeholder = 'Click the triangle again to close'
+          inputElement.disabled = playerEndedLlmConversation
+          inputElement.placeholder = playerEndedLlmConversation
+            ? 'Click the triangle again to close'
+            : 'Type your next reply...'
+
+          if (!playerEndedLlmConversation) {
+            inputElement.focus()
+          }
         }
 
         return
