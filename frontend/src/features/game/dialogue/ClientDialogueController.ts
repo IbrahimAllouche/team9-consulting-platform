@@ -364,11 +364,14 @@ export class ClientDialogueController {
         const pendingClientBubble = addMessage('client', 'Thinking...')
 
         if (client.responseMode === 'hardcoded') {
-          const hardcodedReplies =
-            client.hardcodedReplies ?? [client.hardcodedReply ?? 'Hi, nice to meet you!']
+          const hardcodedReplies = client.hardcodedReplies ?? [
+            client.hardcodedReply ?? 'Hi, nice to meet you!',
+          ]
 
           const hardcodedResponse =
-            hardcodedReplies[hardcodedReplyIndex] ?? hardcodedReplies.at(-1) ?? 'Hi, nice to meet you!'
+            hardcodedReplies[hardcodedReplyIndex] ??
+            hardcodedReplies.at(-1) ??
+            'Hi, nice to meet you!'
 
           pendingClientBubble.textContent = hardcodedResponse
           logElement.scrollTop = logElement.scrollHeight
@@ -432,13 +435,7 @@ export class ClientDialogueController {
       }
     })
 
-    panel.add([
-      panelBody,
-      header,
-      title,
-      sendButton,
-      sendTriangle,
-    ])
+    panel.add([panelBody, header, title, sendButton, sendTriangle])
 
     /*
      * Dialogue stays fixed while the room camera zooms.
