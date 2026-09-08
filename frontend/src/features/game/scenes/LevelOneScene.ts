@@ -109,20 +109,20 @@ export class LevelOneScene extends Phaser.Scene {
 
     const clients: ClientDefinition[] = [
   {
-    name: 'Jordan Lee',
+    name: 'Sarah Chen',
     texture: 'good-client',
     personaId: 'test-level-1',
     responseMode: 'llm',
     sprite: this.goodClient,
   },
   {
-    name: 'Morgan Blake',
-    texture: 'bad-client',
-    responseMode: 'hardcoded',
-    hardcodedReply: 'Hi, nice to meet you!',
-    sprite: this.badClient,
-  },
-]
+  name: 'David Palte',
+  texture: 'bad-client',
+  personaId: 'test-level-2',
+  responseMode: 'llm',
+  sprite: this.badClient,
+},
+    ]
 
     this.clientDialogue = new ClientDialogueController({
       scene: this,
@@ -495,7 +495,7 @@ export class LevelOneScene extends Phaser.Scene {
          * TEST MANAGER DIALOGUE 1.
          */
         this.showManagerPanel({
-          message: 'Welcome! This is temporary manager test dialogue.',
+          message:'Welcome! Follow me and I’ll show you where to get started.',
 
           onContinue: () => {
             this.managerLeadsPlayer()
@@ -529,7 +529,7 @@ export class LevelOneScene extends Phaser.Scene {
          */
         this.showManagerPanel({
           message:
-            'Hi again! You can now explore the room using WASD or the arrow keys.',
+            'Here we are. You can now explore the room and speak with the clients. Talk to each one, learn about their business needs, and decide which opportunity has the most potential.',
 
           onContinue: () => {
             this.interfaceOpen = false
@@ -688,7 +688,7 @@ export class LevelOneScene extends Phaser.Scene {
       .text(
         secondManagerBubble.x - 145,
         secondManagerBubble.y - 28,
-        'Thanks! Your test reply was received.',
+        'Thanks! Your reply was received.',
         {
           color: '#2c2c2a',
           fontFamily: 'Arial',
@@ -705,10 +705,10 @@ export class LevelOneScene extends Phaser.Scene {
       .createFromHTML(
         `
           <input
-            name="managerTestReply"
+            name="managerReply"
             maxlength="120"
             aria-label="Reply to manager"
-            placeholder="Type a test reply..."
+            placeholder="Type your reply..."
             style="
               width: 310px;
               height: 54px;
@@ -729,8 +729,8 @@ export class LevelOneScene extends Phaser.Scene {
       .setDepth(6100)
 
     const inputElement = replyInput.getChildByName(
-      'managerTestReply'
-    ) as HTMLInputElement | null
+  'managerReply'
+) as HTMLInputElement | null
 
     const sendX = panelLeft + panelWidth - 47
     const sendY = WORLD_HEIGHT - 78
