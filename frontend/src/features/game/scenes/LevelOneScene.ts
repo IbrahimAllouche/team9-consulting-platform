@@ -452,7 +452,7 @@ export class LevelOneScene extends Phaser.Scene {
          * TEST MANAGER DIALOGUE 1.
          */
         this.showManagerPanel({
-          message: 'Welcome! This is temporary manager test dialogue.',
+          message:'Welcome! Follow me and I’ll show you where to get started.',
 
           onContinue: () => {
             this.managerLeadsPlayer()
@@ -485,7 +485,8 @@ export class LevelOneScene extends Phaser.Scene {
          * TEST MANAGER DIALOGUE 2.
          */
         this.showManagerPanel({
-          message: 'Hi again! You can now explore the room using WASD or the arrow keys.',
+          message:
+            'Here we are. You can now explore the room and speak with the clients. Talk to each one, learn about their business needs, and decide which opportunity has the most potential.',
 
           onContinue: () => {
             this.interfaceOpen = false
@@ -615,7 +616,7 @@ export class LevelOneScene extends Phaser.Scene {
       .text(
         secondManagerBubble.x - 145,
         secondManagerBubble.y - 28,
-        'Thanks! Your test reply was received.',
+        'Thanks! Your reply was received.',
         {
           color: '#2c2c2a',
           fontFamily: 'Arial',
@@ -632,10 +633,10 @@ export class LevelOneScene extends Phaser.Scene {
       .createFromHTML(
         `
           <input
-            name="managerTestReply"
+            name="managerReply"
             maxlength="120"
             aria-label="Reply to manager"
-            placeholder="Type a test reply..."
+            placeholder="Type your reply..."
             style="
               width: 310px;
               height: 54px;
@@ -655,7 +656,9 @@ export class LevelOneScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(6100)
 
-    const inputElement = replyInput.getChildByName('managerTestReply') as HTMLInputElement | null
+    const inputElement = replyInput.getChildByName(
+  'managerReply'
+) as HTMLInputElement | null
 
     const sendX = panelLeft + panelWidth - 47
     const sendY = WORLD_HEIGHT - 78
