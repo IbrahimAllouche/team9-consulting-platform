@@ -276,7 +276,13 @@ Rules:
     const playerIsWrappingUp =
       /\b(proposal|put together|enough to work with|thanks|thank you|follow up)\b/i.test(message)
 
-    const conversationComplete = coverageResult.allCovered || reachedTurnLimit || playerIsWrappingUp
+    // Keep the explicit player-controlled exit alongside the LLM coverage check and
+    // safety cap. This does not replace the persona completion logic; it only lets a
+    // player deliberately finish the conversation using the agreed closing phrase.
+    const playerSaidByeForNow = /^bye for now[.!?]*$/i.test(message.trim())
+
+    const conversationComplete =
+      coverageResult.allCovered || reachedTurnLimit || playerIsWrappingUp || playerSaidByeForNow
 
     if (conversationComplete) {
       const closingResponse = await callGroq({
