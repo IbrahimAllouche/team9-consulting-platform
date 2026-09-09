@@ -13,10 +13,17 @@ describe('requestPersonaReply', () => {
 
   it('returns a successful persona reply', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ reply: 'Hello, consultant.' }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })
+      new Response(
+        JSON.stringify({
+          reply: 'Hello, consultant.',
+          conversation_complete: false,
+          covered_info_points: [],
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      )
     )
 
     vi.stubGlobal('fetch', fetchMock)
@@ -28,6 +35,8 @@ describe('requestPersonaReply', () => {
 
     expect(result).toEqual({
       reply: 'Hello, consultant.',
+      conversationComplete: false,
+      coveredInfoPoints: [],
       usedFallback: false,
       reason: 'success',
     })
@@ -39,6 +48,7 @@ describe('requestPersonaReply', () => {
         body: JSON.stringify({
           message: 'Hello',
           persona_id: 'test-level-1',
+          history: [],
         }),
       })
     )
@@ -61,15 +71,14 @@ describe('requestPersonaReply', () => {
     })
 
     expect(result.reply).toBe(PERSONA_FALLBACK_MESSAGE)
+    expect(result.conversationComplete).toBe(false)
+    expect(result.coveredInfoPoints).toEqual([])
     expect(result.usedFallback).toBe(true)
     expect(result.reason).toBe('server')
   })
 
   it('returns the fallback after a network failure', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockRejectedValue(new TypeError('Network unavailable'))
-    )
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Network unavailable')))
 
     const result = await requestPersonaReply({
       message: 'Hello',
@@ -77,6 +86,8 @@ describe('requestPersonaReply', () => {
     })
 
     expect(result.reply).toBe(PERSONA_FALLBACK_MESSAGE)
+    expect(result.conversationComplete).toBe(false)
+    expect(result.coveredInfoPoints).toEqual([])
     expect(result.usedFallback).toBe(true)
     expect(result.reason).toBe('network')
   })
@@ -107,6 +118,8 @@ describe('requestPersonaReply', () => {
     const result = await pendingResult
 
     expect(result.reply).toBe(PERSONA_FALLBACK_MESSAGE)
+    expect(result.conversationComplete).toBe(false)
+    expect(result.coveredInfoPoints).toEqual([])
     expect(result.usedFallback).toBe(true)
     expect(result.reason).toBe('timeout')
   })

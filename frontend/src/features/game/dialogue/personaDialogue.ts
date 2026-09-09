@@ -3,8 +3,15 @@ export const PERSONA_FALLBACK_MESSAGE =
 
 export const DEFAULT_PERSONA_TIMEOUT_MS = 10_000
 
+export type PersonaConversationMessage = {
+  role: 'player' | 'persona'
+  content: string
+}
+
 export type PersonaReplyResult = {
   reply: string
+  conversationComplete: boolean
+  coveredInfoPoints: string[]
   usedFallback: boolean
   reason: 'success' | 'timeout' | 'network' | 'server' | 'invalid-response'
 }
@@ -12,16 +19,20 @@ export type PersonaReplyResult = {
 type RequestPersonaReplyOptions = {
   message: string
   personaId: string
+  history?: PersonaConversationMessage[]
   timeoutMs?: number
 }
 
 type PersonaApiBody = {
   reply?: unknown
+  conversation_complete?: unknown
+  covered_info_points?: unknown
 }
 
 export async function requestPersonaReply({
   message,
   personaId,
+  history = [],
   timeoutMs = DEFAULT_PERSONA_TIMEOUT_MS,
 }: RequestPersonaReplyOptions): Promise<PersonaReplyResult> {
   const controller = new AbortController()
@@ -39,6 +50,7 @@ export async function requestPersonaReply({
       body: JSON.stringify({
         message,
         persona_id: personaId,
+        history,
       }),
       signal: controller.signal,
     })
@@ -59,15 +71,19 @@ export async function requestPersonaReply({
       return fallbackResult('invalid-response')
     }
 
+    const coveredInfoPoints = Array.isArray(body.covered_info_points)
+      ? body.covered_info_points.filter((item): item is string => typeof item === 'string')
+      : []
+
     return {
       reply: body.reply.trim(),
+      conversationComplete: body.conversation_complete === true,
+      coveredInfoPoints,
       usedFallback: false,
       reason: 'success',
     }
   } catch {
-    return fallbackResult(
-      controller.signal.aborted ? 'timeout' : 'network'
-    )
+    return fallbackResult(controller.signal.aborted ? 'timeout' : 'network')
   } finally {
     globalThis.clearTimeout(timeout)
   }
@@ -78,6 +94,8 @@ function fallbackResult(
 ): PersonaReplyResult {
   return {
     reply: PERSONA_FALLBACK_MESSAGE,
+    conversationComplete: false,
+    coveredInfoPoints: [],
     usedFallback: true,
     reason,
   }

@@ -36,8 +36,24 @@ export interface Persona {
   id: string
   name: string
   level: 1 | 2
+
+  jobTitle: string
+  company: string
+  industry: string
+
+  coreProblem: string
+  personality: string
+  desiredOutcome: string
+
+  budgetRange: string
+  timeline: string
+  decisionMaker: string
+
+  requiredInfoPoints: string[]
+
   systemPrompt: string
   objections: string[]
+
   createdAt: Timestamp
   updatedAt: Timestamp
   _schemaVersion: 1
@@ -69,9 +85,5 @@ export interface PortfolioProgress {
   updatedAt: Timestamp
   _schemaVersion: 1
 }
-
-
-
-
 
 export type CreateUserProfileInput = Omit<UserProfile, 'createdAt' | 'updatedAt'>

@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 import { LevelOneEffects } from '../effects/LevelOneEffects'
-import { requestPersonaReply } from './personaDialogue'
+import { requestPersonaReply, type PersonaConversationMessage } from './personaDialogue'
 
 export type ClientDefinition = {
   name: string
@@ -27,6 +27,7 @@ type ClientDialogueControllerOptions = {
 }
 
 const INTERACTION_DISTANCE = 185
+const MAX_TURNS = 10
 
 export class ClientDialogueController {
   private readonly scene: Phaser.Scene
@@ -45,7 +46,6 @@ export class ClientDialogueController {
   private readonly onClientCompleted: (client: ClientDefinition) => void
 
   private readonly interactionKey: Phaser.Input.Keyboard.Key
-
   private readonly proximityPrompt: Phaser.GameObjects.Container
 
   private activeClient?: ClientDefinition
@@ -92,9 +92,6 @@ export class ClientDialogueController {
 
     this.proximityPrompt = this.createProximityPrompt()
 
-    /*
-     * The prompt belongs to the room, not the fixed UI camera.
-     */
     this.interfaceCamera.ignore(this.proximityPrompt)
   }
 
@@ -141,7 +138,6 @@ export class ClientDialogueController {
 
   private findClosestClient(): ClientDefinition | undefined {
     let closestClient: ClientDefinition | undefined
-
     let closestDistance = INTERACTION_DISTANCE
 
     for (const client of this.clients) {
@@ -206,11 +202,6 @@ export class ClientDialogueController {
 
     this.player.setVelocity(0)
 
-    /*
-     * Close-up framing based on the supplied mock.
-     * The client remains large on the left while the
-     * fixed dialogue panel stays on the right.
-     */
     this.mainCamera.pan(client.sprite.x + 175, client.sprite.y, 600, 'Sine.easeInOut')
 
     this.mainCamera.zoomTo(2.05, 600, 'Sine.easeInOut')
@@ -223,7 +214,6 @@ export class ClientDialogueController {
   private createDialoguePanel(client: ClientDefinition): void {
     const panelWidth = 470
     const panelLeft = this.worldWidth - panelWidth - 12
-
     const panelX = panelLeft + panelWidth / 2
 
     const panel = this.scene.add.container(0, 0).setScrollFactor(0).setDepth(6500)
@@ -252,7 +242,6 @@ export class ClientDialogueController {
       )
       .setScrollFactor(0)
       .setDepth(6600)
-
     const logElement = dialogueLog.node.querySelector<HTMLDivElement>('[data-client-dialogue-log]')
 
     if (!logElement) {
@@ -297,34 +286,33 @@ export class ClientDialogueController {
       .dom(panelLeft + 205, this.worldHeight - 78)
       .createFromHTML(
         `
-        <input
-          name="clientMockReply"
-          maxlength="120"
-          aria-label="Reply to ${client.name}"
-          placeholder="Type your reply..."
-          style="
-            width: 310px;
-            height: 54px;
-            box-sizing: border-box;
-            border: 2px solid #d8c59e;
-            border-radius: 10px;
-            padding: 0 14px;
-            background: #ffffff;
-            color: #2c2c2a;
-            font-family: Arial, sans-serif;
-            font-size: 16px;
-            outline: none;
-          "
-        />
-      `
+          <input
+            name="clientReply"
+            maxlength="120"
+            aria-label="Reply to ${client.name}"
+            placeholder="Type your reply..."
+            style="
+              width: 310px;
+              height: 54px;
+              box-sizing: border-box;
+              border: 2px solid #d8c59e;
+              border-radius: 10px;
+              padding: 0 14px;
+              background: #ffffff;
+              color: #2c2c2a;
+              font-family: Arial, sans-serif;
+              font-size: 16px;
+              outline: none;
+            "
+          />
+        `
       )
       .setScrollFactor(0)
       .setDepth(6600)
 
-    const inputElement = replyInput.getChildByName('clientMockReply') as HTMLInputElement | null
+    const inputElement = replyInput.getChildByName('clientReply') as HTMLInputElement | null
 
     const sendX = panelLeft + panelWidth - 47
-
     const sendY = this.worldHeight - 78
 
     const sendButton = this.scene.add
@@ -334,113 +322,100 @@ export class ClientDialogueController {
         useHandCursor: true,
       })
 
-    /*
-     * Keep the existing preferred triangular control.
-     */
     const sendTriangle = this.scene.add.graphics()
 
     sendTriangle.fillStyle(0x2c2c2a)
 
     sendTriangle.fillTriangle(sendX - 7, sendY - 11, sendX - 7, sendY + 11, sendX + 11, sendY)
 
-    let replySent = false
+    let conversationComplete = false
     let requestInProgress = false
     let hardcodedReplyIndex = 0
+    const conversationHistory: PersonaConversationMessage[] = []
 
     const sendOrClose = async () => {
       this.effects.pressButton(sendButton)
 
-      if (!replySent) {
-        const reply = inputElement?.value.trim() ?? ''
-
-        if (!reply || requestInProgress) {
-          inputElement?.focus()
-          return
+      // Once either dialogue mode reports completion, the same control closes the
+      // panel. Completion is recorded only on close so Level 1 progression remains
+      // aligned with what the player has actually finished viewing.
+      if (conversationComplete) {
+        if (!requestInProgress) {
+          this.closeDialogue()
         }
-
-        requestInProgress = true
-        addMessage('player', reply)
-
-        const playerEndedLlmConversation = /^bye for now[.!?]*$/i.test(reply)
-
-        if (inputElement) {
-          inputElement.value = ''
-          inputElement.disabled = true
-          inputElement.placeholder = 'Waiting for client response...'
-        }
-
-        const pendingClientBubble = addMessage('client', 'Thinking...')
-
-        if (client.responseMode === 'hardcoded') {
-          const hardcodedReplies = client.hardcodedReplies ?? [
-            client.hardcodedReply ?? 'Hi, nice to meet you!',
-          ]
-
-          const hardcodedResponse =
-            hardcodedReplies[hardcodedReplyIndex] ??
-            hardcodedReplies.at(-1) ??
-            'Hi, nice to meet you!'
-
-          pendingClientBubble.textContent = hardcodedResponse
-          logElement.scrollTop = logElement.scrollHeight
-
-          hardcodedReplyIndex += 1
-
-          const hardcodedConversationComplete = hardcodedReplyIndex >= hardcodedReplies.length
-
-          replySent = hardcodedConversationComplete
-          this.activeConversationCompleted = hardcodedConversationComplete
-          requestInProgress = false
-
-          if (inputElement) {
-            inputElement.disabled = hardcodedConversationComplete
-            inputElement.placeholder = hardcodedConversationComplete
-              ? 'Click the triangle again to close'
-              : 'Type your next reply...'
-
-            if (!hardcodedConversationComplete) {
-              inputElement.focus()
-            }
-          }
-
-          return
-        } else {
-          if (!client.personaId) {
-            pendingClientBubble.textContent = 'Unable to load client response.'
-          } else {
-            const result = await requestPersonaReply({
-              message: reply,
-              personaId: client.personaId,
-            })
-
-            pendingClientBubble.textContent = result.reply
-          }
-
-          logElement.scrollTop = logElement.scrollHeight
-        }
-
-        replySent = playerEndedLlmConversation
-        this.activeConversationCompleted = playerEndedLlmConversation
-        requestInProgress = false
-
-        if (inputElement) {
-          inputElement.disabled = playerEndedLlmConversation
-          inputElement.placeholder = playerEndedLlmConversation
-            ? 'Click the triangle again to close'
-            : 'Type your next reply...'
-
-          if (!playerEndedLlmConversation) {
-            inputElement.focus()
-          }
-        }
-
         return
       }
 
-      if (!requestInProgress) {
-        this.closeDialogue()
+      const reply = inputElement?.value.trim() ?? ''
+
+      if (!reply || requestInProgress) {
+        inputElement?.focus()
+        return
+      }
+
+      requestInProgress = true
+      addMessage('player', reply)
+
+      if (inputElement) {
+        inputElement.value = ''
+        inputElement.disabled = true
+        inputElement.placeholder = 'Waiting for client response...'
+      }
+
+      const pendingClientBubble = addMessage('client', 'Thinking...')
+
+      if (client.responseMode === 'hardcoded') {
+        // Scripted clients retain every authored response instead of ending after
+        // the first message. The conversation completes after the final response.
+        const hardcodedReplies = client.hardcodedReplies ?? [
+          client.hardcodedReply ?? 'Hi, nice to meet you!',
+        ]
+        const hardcodedResponse =
+          hardcodedReplies[hardcodedReplyIndex] ??
+          hardcodedReplies.at(-1) ??
+          'Hi, nice to meet you!'
+
+        pendingClientBubble.textContent = hardcodedResponse
+        hardcodedReplyIndex += 1
+        conversationComplete = hardcodedReplyIndex >= hardcodedReplies.length
+      } else if (!client.personaId) {
+        pendingClientBubble.textContent = 'Unable to load client response.'
+      } else {
+        // The complete history is sent on every turn. Ibrahim's API decides whether
+        // all required information has been covered, while the local cap guarantees
+        // the UI cannot remain open indefinitely if that completion check misses.
+        const result = await requestPersonaReply({
+          message: reply,
+          personaId: client.personaId,
+          history: conversationHistory,
+        })
+
+        pendingClientBubble.textContent = result.reply
+        conversationHistory.push(
+          { role: 'player', content: reply },
+          { role: 'persona', content: result.reply }
+        )
+
+        const turnCount = conversationHistory.filter((message) => message.role === 'player').length
+        conversationComplete = result.conversationComplete || turnCount >= MAX_TURNS
+      }
+
+      logElement.scrollTop = logElement.scrollHeight
+      this.activeConversationCompleted = conversationComplete
+      requestInProgress = false
+
+      if (inputElement) {
+        inputElement.disabled = conversationComplete
+        inputElement.placeholder = conversationComplete
+          ? 'Click the triangle again to close'
+          : 'Type your next reply...'
+
+        if (!conversationComplete) {
+          inputElement.focus()
+        }
       }
     }
+
     sendButton.on('pointerdown', sendOrClose)
 
     inputElement?.addEventListener('keydown', (event) => {
