@@ -14,6 +14,8 @@ const CHARACTER_WIDTH = 165
 const CHARACTER_HEIGHT = 238
 const TABLE_WIDTH = 175
 const TABLE_HEIGHT = 154
+const LEVEL_ONE_COMPLETION_KEY = 'ibm-level-one-completed'
+const LEVEL_ONE_MET_CLIENTS_KEY = 'ibm-level-one-met-clients'
 
 type ManagerDialogueStep = {
   message: string
@@ -47,6 +49,15 @@ export class LevelOneScene extends Phaser.Scene {
 
   private interfaceCamera!: Phaser.Cameras.Scene2D.Camera
   private obstacleZones: Phaser.GameObjects.Zone[] = []
+  private completedClientNames = new Set<string>()
+  private completedClients = new Map<
+    string,
+    { name: string; personaId?: string; texture: string }
+  >()
+  private requiredClientCount = 0
+  private levelCompletionStarted = false
+  private exitReady = false
+  private exitArrow?: Phaser.GameObjects.Container
 
   private notes = ''
 
@@ -96,21 +107,23 @@ export class LevelOneScene extends Phaser.Scene {
     this.createInterfaceCamera(worldObjects)
 
     const clients: ClientDefinition[] = [
-  {
-    name: 'Sarah Chen',
-    texture: 'good-client',
-    personaId: 'test-level-1',
-    responseMode: 'llm',
-    sprite: this.goodClient,
-  },
-  {
-  name: 'David Palte',
-  texture: 'bad-client',
-  personaId: 'test-level-2',
-  responseMode: 'llm',
-  sprite: this.badClient,
-},
+      {
+        name: 'Sarah Chen',
+        texture: 'good-client',
+        personaId: 'test-level-1',
+        responseMode: 'llm',
+        sprite: this.goodClient,
+      },
+      {
+        name: 'David Palte',
+        texture: 'bad-client',
+        personaId: 'test-level-2',
+        responseMode: 'llm',
+        sprite: this.badClient,
+      },
     ]
+
+    this.requiredClientCount = clients.length
 
     this.clientDialogue = new ClientDialogueController({
       scene: this,
@@ -131,6 +144,10 @@ export class LevelOneScene extends Phaser.Scene {
         this.interfaceOpen = false
         this.controlsEnabled = true
       },
+
+      onClientCompleted: (client) => {
+        this.handleClientCompleted(client)
+      },
     })
 
     this.startArrivalSequence()
@@ -150,6 +167,7 @@ export class LevelOneScene extends Phaser.Scene {
     this.updateMovement()
     this.updateCharacterDepths()
     this.clientDialogue?.update()
+    this.checkForLevelExit()
   }
 
   private configureKeyboard(): void {
@@ -262,11 +280,14 @@ export class LevelOneScene extends Phaser.Scene {
 
     this.effects.addPlantSway(plant)
 
-    this.addObstacle(640, 295, 510, 78)
-    this.addObstacle(155, 420, 125, 68)
-    this.addObstacle(525, 420, 125, 68)
-    this.addObstacle(340, 585, 125, 68)
-    this.addObstacle(965, 585, 125, 68)
+    // Keep collision footprints aligned with the furniture's floor contact area.
+    // They are intentionally smaller than the full PNG bounds so the player
+    // can walk behind furniture without walking through it.
+    this.addObstacle(WORLD_WIDTH / 2, 320, 500, 60)
+    this.addObstacle(155, 420, 145, 88)
+    this.addObstacle(525, 420, 145, 88)
+    this.addObstacle(340, 585, 145, 88)
+    this.addObstacle(965, 585, 145, 88)
     this.addObstacle(1135, 300, 115, 95)
   }
 
@@ -447,7 +468,7 @@ export class LevelOneScene extends Phaser.Scene {
          * TEST MANAGER DIALOGUE 1.
          */
         this.showManagerPanel({
-          message:'Welcome! Follow me and I’ll show you where to get started.',
+          message: 'Welcome! Follow me and I’ll show you where to get started.',
 
           onContinue: () => {
             this.managerLeadsPlayer()
@@ -651,9 +672,7 @@ export class LevelOneScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(6100)
 
-    const inputElement = replyInput.getChildByName(
-  'managerReply'
-) as HTMLInputElement | null
+    const inputElement = replyInput.getChildByName('managerReply') as HTMLInputElement | null
 
     const sendX = panelLeft + panelWidth - 47
     const sendY = WORLD_HEIGHT - 78
@@ -804,6 +823,170 @@ export class LevelOneScene extends Phaser.Scene {
 
     this.managerPanel?.destroy(true)
     this.managerPanel = undefined
+  }
+
+  private handleClientCompleted(client: ClientDefinition): void {
+    this.completedClientNames.add(client.name)
+    this.completedClients.set(client.name, {
+      name: client.name,
+      personaId: client.personaId,
+      texture: client.texture,
+    })
+
+    // Level 2 builds its laptop client list from the people the player actually met.
+    // Saving only stable client details keeps this handoff independent from Phaser sprites.
+    window.localStorage.setItem(
+      LEVEL_ONE_MET_CLIENTS_KEY,
+      JSON.stringify([...this.completedClients.values()])
+    )
+
+    if (this.levelCompletionStarted || this.completedClientNames.size < this.requiredClientCount) {
+      return
+    }
+
+    this.levelCompletionStarted = true
+    this.interfaceOpen = true
+    this.controlsEnabled = false
+    this.player.setVelocity(0)
+
+    this.time.delayedCall(300, () => {
+      this.showLevelCompleteManagerMessage()
+    })
+  }
+
+  private showLevelCompleteManagerMessage(): void {
+    this.zoomToManager()
+
+    const panelWidth = 470
+    const panelLeft = WORLD_WIDTH - panelWidth - 12
+    const panelX = panelLeft + panelWidth / 2
+    const panel = this.add.container(0, 0).setScrollFactor(0).setDepth(6500)
+
+    const panelBody = this.add
+      .rectangle(panelX, WORLD_HEIGHT / 2, panelWidth, WORLD_HEIGHT - 28, 0xf4f7f9)
+      .setStrokeStyle(4, 0x111111)
+    const header = this.add
+      .rectangle(panelX, 66, panelWidth, 90, 0xb98900)
+      .setStrokeStyle(4, 0x111111)
+    const title = this.add
+      .text(panelX, 66, 'Your Manager', {
+        color: '#111111',
+        fontFamily: 'Arial',
+        fontSize: '26px',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5)
+    const avatarBorder = this.add.circle(panelLeft + 52, 190, 31, 0x2c2c2a)
+    const avatar = this.add.image(panelLeft + 52, 192, 'manager').setDisplaySize(47, 68)
+    const bubble = this.add
+      .rectangle(panelLeft + 270, 215, 330, 180, 0xffffff)
+      .setStrokeStyle(2, 0xa1a7ad)
+    const message = this.add.text(
+      bubble.x - 145,
+      bubble.y - 68,
+      'Great job! You have spoken with every available client and completed Find a Lead. Head to the elevator and return to your office to begin Outreach.',
+      {
+        color: '#2c2c2a',
+        fontFamily: 'Arial',
+        fontSize: '18px',
+        lineSpacing: 7,
+        wordWrap: { width: 290 },
+      }
+    )
+
+    const continueButton = this.add
+      .rectangle(panelX, WORLD_HEIGHT - 105, 220, 58, 0x5b8c4a)
+      .setStrokeStyle(4, 0x111111)
+      .setInteractive({ useHandCursor: true })
+    const continueText = this.add
+      .text(panelX, WORLD_HEIGHT - 105, 'GO TO ELEVATOR', {
+        color: '#ffffff',
+        fontFamily: 'Arial',
+        fontSize: '17px',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5)
+
+    continueButton.on('pointerdown', () => {
+      this.effects.pressButton(continueButton)
+      panel.destroy(true)
+      this.restoreRoomCamera(() => {
+        this.interfaceOpen = false
+        this.controlsEnabled = true
+        this.showExitArrow()
+      })
+    })
+
+    panel.add([
+      panelBody,
+      header,
+      title,
+      avatarBorder,
+      avatar,
+      bubble,
+      message,
+      continueButton,
+      continueText,
+    ])
+
+    this.cameras.main.ignore(panel)
+    this.effects.animatePanel(panel)
+    this.effects.animateBubble([avatarBorder, avatar, bubble, message], 250)
+    this.effects.addButtonHover(continueButton)
+  }
+
+  private showExitArrow(): void {
+    if (this.exitArrow) return
+
+    const arrow = this.add.container(WORLD_WIDTH / 2, FLOOR_BOTTOM - 82).setDepth(5300)
+    const label = this.add
+      .text(0, -35, 'EXIT TO YOUR OFFICE', {
+        color: '#ffffff',
+        backgroundColor: '#1f4f78',
+        fontFamily: 'Arial',
+        fontSize: '16px',
+        fontStyle: 'bold',
+        padding: { x: 12, y: 7 },
+      })
+      .setOrigin(0.5)
+    const arrowGraphic = this.add.graphics()
+
+    arrowGraphic.fillStyle(0xc98a3e)
+    arrowGraphic.lineStyle(4, 0x2c2c2a)
+    arrowGraphic.fillTriangle(-24, 0, 24, 0, 0, 34)
+    arrowGraphic.strokeTriangle(-24, 0, 24, 0, 0, 34)
+    arrow.add([label, arrowGraphic])
+
+    this.tweens.add({
+      targets: arrow,
+      y: FLOOR_BOTTOM - 67,
+      duration: 650,
+      ease: 'Sine.easeInOut',
+      yoyo: true,
+      repeat: -1,
+    })
+
+    this.interfaceCamera.ignore(arrow)
+    this.exitArrow = arrow
+    this.exitReady = true
+  }
+
+  private checkForLevelExit(): void {
+    if (!this.exitReady) return
+
+    const body = this.player.body as Phaser.Physics.Arcade.Body
+    const withinElevator =
+      this.player.x >= WORLD_WIDTH / 2 - 185 && this.player.x <= WORLD_WIDTH / 2 + 185
+
+    if (!withinElevator || body.bottom < FLOOR_BOTTOM - 4) return
+
+    this.exitReady = false
+    this.controlsEnabled = false
+    this.player.setVelocity(0)
+
+    window.localStorage.setItem(LEVEL_ONE_COMPLETION_KEY, 'true')
+    window.localStorage.setItem('ibm-level-one-unlocked', 'true')
+    window.location.assign('/dashboard?completed=level-1')
   }
 
   private updateMovement(): void {

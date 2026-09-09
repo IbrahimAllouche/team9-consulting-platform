@@ -15,9 +15,7 @@ const MODEL = 'openai/gpt-oss-20b'
 const MAX_TURNS = 10
 
 function buildPersonaContext(persona: FirebaseFirestore.DocumentData) {
-  const objections = Array.isArray(persona.objections)
-    ? persona.objections.join('\n- ')
-    : ''
+  const objections = Array.isArray(persona.objections) ? persona.objections.join('\n- ') : ''
 
   const requiredInfoPoints = Array.isArray(persona.requiredInfoPoints)
     ? persona.requiredInfoPoints
@@ -69,17 +67,14 @@ function normaliseHistory(value: unknown): ConversationMessage[] {
     (item): item is ConversationMessage =>
       typeof item === 'object' &&
       item !== null &&
-      ('role' in item &&
-        (item.role === 'player' || item.role === 'persona')) &&
+      'role' in item &&
+      (item.role === 'player' || item.role === 'persona') &&
       'content' in item &&
       typeof item.content === 'string'
   )
 }
 
-function parseCoverageResult(
-  rawContent: string,
-  requiredInfoPoints: string[]
-): CoverageResult {
+function parseCoverageResult(rawContent: string, requiredInfoPoints: string[]): CoverageResult {
   try {
     const cleaned = rawContent
       .replace(/```json/gi, '')
@@ -92,16 +87,12 @@ function parseCoverageResult(
     }
 
     const coveredInfoPoints = Array.isArray(parsed.coveredInfoPoints)
-      ? parsed.coveredInfoPoints.filter(
-          (item): item is string => typeof item === 'string'
-        )
+      ? parsed.coveredInfoPoints.filter((item): item is string => typeof item === 'string')
       : []
 
     return {
       coveredInfoPoints,
-      allCovered:
-        parsed.allCovered === true &&
-        requiredInfoPoints.length > 0,
+      allCovered: parsed.allCovered === true && requiredInfoPoints.length > 0,
     }
   } catch {
     return {
@@ -123,53 +114,37 @@ async function callGroq({
   }>
   maxTokens: number
 }) {
-  return fetch(
-    'https://api.groq.com/openai/v1/chat/completions',
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages,
-        max_tokens: maxTokens,
-      }),
-    }
-  )
+  return fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      messages,
+      max_tokens: maxTokens,
+    }),
+  })
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
 
-    const {
-      message,
-      persona_id,
-      history: rawHistory = [],
-    } = body
+    const { message, persona_id, history: rawHistory = [] } = body
 
     if (!message || typeof message !== 'string') {
-      return NextResponse.json(
-        { error: 'Message is required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Message is required' }, { status: 400 })
     }
 
     if (!persona_id || typeof persona_id !== 'string') {
-      return NextResponse.json(
-        { error: 'persona_id is required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'persona_id is required' }, { status: 400 })
     }
 
     const history = normaliseHistory(rawHistory)
 
-    if (
-      process.env.NODE_ENV === 'development' &&
-      process.env.PERSONA_API_MOCK === 'true'
-    ) {
+    if (process.env.NODE_ENV === 'development' && process.env.PERSONA_API_MOCK === 'true') {
       return NextResponse.json({
         success: true,
         provider: 'mock',
@@ -182,44 +157,28 @@ export async function POST(request: Request) {
       })
     }
 
-    const personaSnapshot = await adminDb
-      .collection('personas')
-      .doc(persona_id)
-      .get()
+    const personaSnapshot = await adminDb.collection('personas').doc(persona_id).get()
 
     if (!personaSnapshot.exists) {
-      return NextResponse.json(
-        { error: 'Persona not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Persona not found' }, { status: 404 })
     }
 
     const persona = personaSnapshot.data()
 
     if (!persona?.systemPrompt) {
-      return NextResponse.json(
-        { error: 'Persona system prompt is missing' },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: 'Persona system prompt is missing' }, { status: 500 })
     }
 
     const apiKey = process.env.GROQ_API_KEY
 
     if (!apiKey) {
-      return NextResponse.json(
-        { error: 'GROQ_API_KEY is not configured' },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: 'GROQ_API_KEY is not configured' }, { status: 500 })
     }
 
-    const { systemPrompt, requiredInfoPoints } =
-      buildPersonaContext(persona)
+    const { systemPrompt, requiredInfoPoints } = buildPersonaContext(persona)
 
     const groqHistory = history.map((item) => ({
-      role:
-        item.role === 'player'
-          ? ('user' as const)
-          : ('assistant' as const),
+      role: item.role === 'player' ? ('user' as const) : ('assistant' as const),
       content: item.content,
     }))
 
@@ -251,9 +210,7 @@ export async function POST(request: Request) {
       )
     }
 
-    let reply =
-      data.choices?.[0]?.message?.content ??
-      'No response returned'
+    let reply = data.choices?.[0]?.message?.content ?? 'No response returned'
 
     const fullConversation: ConversationMessage[] = [
       ...history,
@@ -306,33 +263,20 @@ Rules:
       if (coverageResponse.ok) {
         const coverageData = await coverageResponse.json()
 
-        const coverageContent =
-          coverageData.choices?.[0]?.message?.content ?? ''
+        const coverageContent = coverageData.choices?.[0]?.message?.content ?? ''
 
-        coverageResult = parseCoverageResult(
-          coverageContent,
-          requiredInfoPoints
-        )
+        coverageResult = parseCoverageResult(coverageContent, requiredInfoPoints)
       }
     }
 
-    const playerTurnCount =
-      fullConversation.filter(
-        (item) => item.role === 'player'
-      ).length
+    const playerTurnCount = fullConversation.filter((item) => item.role === 'player').length
 
-    const reachedTurnLimit =
-      playerTurnCount >= MAX_TURNS
+    const reachedTurnLimit = playerTurnCount >= MAX_TURNS
 
     const playerIsWrappingUp =
-  /\b(proposal|put together|enough to work with|thanks|thank you|follow up)\b/i.test(
-    message
-  )
+      /\b(proposal|put together|enough to work with|thanks|thank you|follow up)\b/i.test(message)
 
-    const conversationComplete =
-  coverageResult.allCovered ||
-  reachedTurnLimit ||
-  playerIsWrappingUp
+    const conversationComplete = coverageResult.allCovered || reachedTurnLimit || playerIsWrappingUp
 
     if (conversationComplete) {
       const closingResponse = await callGroq({
@@ -360,24 +304,18 @@ End the conversation naturally, for example by thanking the player or saying you
           },
           {
             role: 'user',
-            content:
-              'Close the conversation naturally now.',
+            content: 'Close the conversation naturally now.',
           },
         ],
         maxTokens: 100,
       })
 
       if (closingResponse.ok) {
-        const closingData =
-          await closingResponse.json()
+        const closingData = await closingResponse.json()
 
-        const closingReply =
-          closingData.choices?.[0]?.message?.content
+        const closingReply = closingData.choices?.[0]?.message?.content
 
-        if (
-          typeof closingReply === 'string' &&
-          closingReply.trim().length > 0
-        ) {
+        if (typeof closingReply === 'string' && closingReply.trim().length > 0) {
           reply = closingReply.trim()
         }
       }
@@ -391,19 +329,14 @@ End the conversation naturally, for example by thanking the player or saying you
       persona_name: persona.name ?? persona_id,
       level: persona.level ?? null,
       reply,
-      covered_info_points:
-        coverageResult.coveredInfoPoints,
-      conversation_complete:
-        conversationComplete,
+      covered_info_points: coverageResult.coveredInfoPoints,
+      conversation_complete: conversationComplete,
       turn_count: playerTurnCount,
       max_turns: MAX_TURNS,
     })
   } catch (error) {
     console.error('Persona API error:', error)
 
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

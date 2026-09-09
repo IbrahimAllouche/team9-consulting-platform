@@ -72,9 +72,7 @@ export async function requestPersonaReply({
     }
 
     const coveredInfoPoints = Array.isArray(body.covered_info_points)
-      ? body.covered_info_points.filter(
-          (item): item is string => typeof item === 'string'
-        )
+      ? body.covered_info_points.filter((item): item is string => typeof item === 'string')
       : []
 
     return {
@@ -85,9 +83,7 @@ export async function requestPersonaReply({
       reason: 'success',
     }
   } catch {
-    return fallbackResult(
-      controller.signal.aborted ? 'timeout' : 'network'
-    )
+    return fallbackResult(controller.signal.aborted ? 'timeout' : 'network')
   } finally {
     globalThis.clearTimeout(timeout)
   }

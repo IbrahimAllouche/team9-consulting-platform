@@ -78,10 +78,7 @@ describe('requestPersonaReply', () => {
   })
 
   it('returns the fallback after a network failure', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockRejectedValue(new TypeError('Network unavailable'))
-    )
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Network unavailable')))
 
     const result = await requestPersonaReply({
       message: 'Hello',
