@@ -31,9 +31,7 @@ const readLevelOneCompletion = () => {
   const completedFromLevel =
     new URLSearchParams(window.location.search).get('completed') === 'level-1'
 
-  return (
-    completedFromLevel || window.localStorage.getItem(LEVEL_ONE_COMPLETION_KEY) === 'true'
-  )
+  return completedFromLevel || window.localStorage.getItem(LEVEL_ONE_COMPLETION_KEY) === 'true'
 }
 
 const subscribeToLevelOneUnlock = (onStoreChange: () => void) => {

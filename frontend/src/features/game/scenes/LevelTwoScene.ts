@@ -300,10 +300,7 @@ export class LevelTwoScene extends Phaser.Scene {
   private createChair(): void {
     // The chair is separate from the desk so it can sit in front exactly as shown in the wireframe.
     this.add.ellipse(290, 636, 185, 28, 0x2c2c2a, 0.15).setDepth(520)
-    this.chair = this.add
-      .image(290, 555, 'level-two-chair')
-      .setDisplaySize(220, 264)
-      .setDepth(548)
+    this.chair = this.add.image(290, 555, 'level-two-chair').setDisplaySize(220, 264).setDepth(548)
   }
 
   private createCouch(): void {
@@ -313,10 +310,7 @@ export class LevelTwoScene extends Phaser.Scene {
 
   private createPlant(): void {
     this.add.ellipse(900, 476, 78, 19, 0x2c2c2a, 0.13).setDepth(395)
-    this.plant = this.add
-      .image(900, 405, 'level-two-plant')
-      .setDisplaySize(120, 125)
-      .setDepth(405)
+    this.plant = this.add.image(900, 405, 'level-two-plant').setDisplaySize(120, 125).setDepth(405)
   }
 
   private createNavigationButtons(): void {
@@ -391,9 +385,7 @@ export class LevelTwoScene extends Phaser.Scene {
 
   private createInteractionPrompt(): Phaser.GameObjects.Container {
     const prompt = this.add.container(290, 650).setDepth(4500).setVisible(false)
-    const background = this.add
-      .rectangle(0, 0, 238, 54, 0xf4f7f9, 0.96)
-      .setStrokeStyle(4, 0x2c2c2a)
+    const background = this.add.rectangle(0, 0, 238, 54, 0xf4f7f9, 0.96).setStrokeStyle(4, 0x2c2c2a)
     const label = this.add
       .text(0, 0, 'Press E to use laptop', {
         color: '#2c2c2a',
@@ -442,7 +434,14 @@ export class LevelTwoScene extends Phaser.Scene {
 
   private createFootstepParticle(): void {
     const footstep = this.add
-      .ellipse(this.player.x, this.player.y + this.player.displayHeight * 0.43, 22, 8, 0x956127, 0.22)
+      .ellipse(
+        this.player.x,
+        this.player.y + this.player.displayHeight * 0.43,
+        22,
+        8,
+        0x956127,
+        0.22
+      )
       .setDepth(this.player.y - 3)
 
     this.tweens.add({
@@ -483,10 +482,7 @@ export class LevelTwoScene extends Phaser.Scene {
     // This is intentionally a narrow rectangle directly below the chair. A circular
     // radius allowed E to activate from the desk sides and did not feel intentional.
     const canUseLaptop =
-      this.player.x >= 190 &&
-      this.player.x <= 390 &&
-      this.player.y >= 520 &&
-      this.player.y <= 675
+      this.player.x >= 190 && this.player.x <= 390 && this.player.y >= 520 && this.player.y <= 675
 
     this.interactionPrompt.setVisible(canUseLaptop)
 
@@ -732,16 +728,7 @@ export class LevelTwoScene extends Phaser.Scene {
       .setScale(0, 1)
     const scanLine = this.add.rectangle(WORLD_WIDTH / 2, 58, 1220, 3, 0xc7e5f3, 0.7)
 
-    bootLayer.add([
-      background,
-      glow,
-      laptopIcon,
-      title,
-      status,
-      progressTrack,
-      progress,
-      scanLine,
-    ])
+    bootLayer.add([background, glow, laptopIcon, title, status, progressTrack, progress, scanLine])
     overlay.add(bootLayer)
 
     this.tweens.add({

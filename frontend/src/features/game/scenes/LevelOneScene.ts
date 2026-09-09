@@ -844,10 +844,7 @@ export class LevelOneScene extends Phaser.Scene {
       JSON.stringify([...this.completedClients.values()])
     )
 
-    if (
-      this.levelCompletionStarted ||
-      this.completedClientNames.size < this.requiredClientCount
-    ) {
+    if (this.levelCompletionStarted || this.completedClientNames.size < this.requiredClientCount) {
       return
     }
 
