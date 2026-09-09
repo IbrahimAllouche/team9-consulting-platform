@@ -14,11 +14,27 @@ type ConsultingRoomProps = {
 
 const LEVEL_ONE_UNLOCK_KEY = 'ibm-level-one-unlocked'
 const LEVEL_ONE_UNLOCK_EVENT = 'ibm-level-one-unlocked'
+const LEVEL_ONE_COMPLETION_KEY = 'ibm-level-one-completed'
+const LEVEL_ONE_COMPLETION_EVENT = 'ibm-level-one-completed'
 
-const subscribeToLocation = () => () => undefined
+const subscribeToLevelOneCompletion = (onStoreChange: () => void) => {
+  window.addEventListener('storage', onStoreChange)
+  window.addEventListener(LEVEL_ONE_COMPLETION_EVENT, onStoreChange)
 
-const readLevelOneCompletion = () =>
-  new URLSearchParams(window.location.search).get('completed') === 'level-1'
+  return () => {
+    window.removeEventListener('storage', onStoreChange)
+    window.removeEventListener(LEVEL_ONE_COMPLETION_EVENT, onStoreChange)
+  }
+}
+
+const readLevelOneCompletion = () => {
+  const completedFromLevel =
+    new URLSearchParams(window.location.search).get('completed') === 'level-1'
+
+  return (
+    completedFromLevel || window.localStorage.getItem(LEVEL_ONE_COMPLETION_KEY) === 'true'
+  )
+}
 
 const subscribeToLevelOneUnlock = (onStoreChange: () => void) => {
   window.addEventListener('storage', onStoreChange)
@@ -54,7 +70,7 @@ export default function ConsultingRoom({ stage }: ConsultingRoomProps) {
   const [isUnlocking, setIsUnlocking] = useState(false)
 
   const levelOneJustCompleted = useSyncExternalStore(
-    subscribeToLocation,
+    subscribeToLevelOneCompletion,
     readLevelOneCompletion,
     () => false
   )

@@ -23,6 +23,7 @@ type ClientDialogueControllerOptions = {
   worldHeight: number
   onOpen: () => void
   onClose: () => void
+  onClientCompleted: (client: ClientDefinition) => void
 }
 
 const INTERACTION_DISTANCE = 185
@@ -41,6 +42,7 @@ export class ClientDialogueController {
 
   private readonly onOpen: () => void
   private readonly onClose: () => void
+  private readonly onClientCompleted: (client: ClientDefinition) => void
 
   private readonly interactionKey: Phaser.Input.Keyboard.Key
 
@@ -50,6 +52,7 @@ export class ClientDialogueController {
   private panel?: Phaser.GameObjects.Container
   private replyInput?: Phaser.GameObjects.DOMElement
   private dialogueLog?: Phaser.GameObjects.DOMElement
+  private activeConversationCompleted = false
 
   constructor({
     scene,
@@ -62,6 +65,7 @@ export class ClientDialogueController {
     worldHeight,
     onOpen,
     onClose,
+    onClientCompleted,
   }: ClientDialogueControllerOptions) {
     this.scene = scene
     this.player = player
@@ -76,6 +80,7 @@ export class ClientDialogueController {
 
     this.onOpen = onOpen
     this.onClose = onClose
+    this.onClientCompleted = onClientCompleted
 
     const keyboard = this.scene.input.keyboard
 
@@ -197,6 +202,7 @@ export class ClientDialogueController {
 
     this.hidePrompt()
     this.onOpen()
+    this.activeConversationCompleted = false
 
     this.player.setVelocity(0)
 
@@ -383,6 +389,7 @@ export class ClientDialogueController {
           const hardcodedConversationComplete = hardcodedReplyIndex >= hardcodedReplies.length
 
           replySent = hardcodedConversationComplete
+          this.activeConversationCompleted = hardcodedConversationComplete
           requestInProgress = false
 
           if (inputElement) {
@@ -413,6 +420,7 @@ export class ClientDialogueController {
         }
 
         replySent = playerEndedLlmConversation
+        this.activeConversationCompleted = playerEndedLlmConversation
         requestInProgress = false
 
         if (inputElement) {
@@ -461,6 +469,8 @@ export class ClientDialogueController {
   }
 
   private closeDialogue(): void {
+    const completedClient = this.activeConversationCompleted ? this.activeClient : undefined
+
     this.replyInput?.destroy()
     this.replyInput = undefined
 
@@ -471,6 +481,7 @@ export class ClientDialogueController {
     this.panel = undefined
 
     this.activeClient = undefined
+    this.activeConversationCompleted = false
 
     this.effects.hideDialogueVignette()
 
@@ -480,6 +491,10 @@ export class ClientDialogueController {
 
     this.scene.time.delayedCall(520, () => {
       this.onClose()
+
+      if (completedClient) {
+        this.onClientCompleted(completedClient)
+      }
     })
   }
 }
