@@ -1,6 +1,9 @@
 import Phaser from 'phaser'
 import { LevelOneEffects } from '../effects/LevelOneEffects'
-import { requestPersonaReply } from './personaDialogue'
+import {
+  requestPersonaReply,
+  type PersonaConversationMessage,
+} from './personaDialogue'
 
 export type ClientDefinition = {
   name: string
@@ -26,6 +29,7 @@ type ClientDialogueControllerOptions = {
 }
 
 const INTERACTION_DISTANCE = 185
+const MAX_TURNS = 10
 
 export class ClientDialogueController {
   private readonly scene: Phaser.Scene
@@ -43,7 +47,6 @@ export class ClientDialogueController {
   private readonly onClose: () => void
 
   private readonly interactionKey: Phaser.Input.Keyboard.Key
-
   private readonly proximityPrompt: Phaser.GameObjects.Container
 
   private activeClient?: ClientDefinition
@@ -80,16 +83,17 @@ export class ClientDialogueController {
     const keyboard = this.scene.input.keyboard
 
     if (!keyboard) {
-      throw new Error('Keyboard input is unavailable for client interaction.')
+      throw new Error(
+        'Keyboard input is unavailable for client interaction.'
+      )
     }
 
-    this.interactionKey = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E)
+    this.interactionKey = keyboard.addKey(
+      Phaser.Input.Keyboard.KeyCodes.E
+    )
 
     this.proximityPrompt = this.createProximityPrompt()
 
-    /*
-     * The prompt belongs to the room, not the fixed UI camera.
-     */
     this.interfaceCamera.ignore(this.proximityPrompt)
   }
 
@@ -110,10 +114,17 @@ export class ClientDialogueController {
     this.activeClient = closestClient
 
     this.proximityPrompt
-      .setPosition(closestClient.sprite.x, closestClient.sprite.y - 125)
+      .setPosition(
+        closestClient.sprite.x,
+        closestClient.sprite.y - 125
+      )
       .setVisible(true)
 
-    if (Phaser.Input.Keyboard.JustDown(this.interactionKey)) {
+    if (
+      Phaser.Input.Keyboard.JustDown(
+        this.interactionKey
+      )
+    ) {
       this.openDialogue(closestClient)
     }
   }
@@ -134,9 +145,10 @@ export class ClientDialogueController {
     this.activeClient = undefined
   }
 
-  private findClosestClient(): ClientDefinition | undefined {
+  private findClosestClient():
+    | ClientDefinition
+    | undefined {
     let closestClient: ClientDefinition | undefined
-
     let closestDistance = INTERACTION_DISTANCE
 
     for (const client of this.clients) {
@@ -156,11 +168,22 @@ export class ClientDialogueController {
     return closestClient
   }
 
-  private createProximityPrompt(): Phaser.GameObjects.Container {
-    const container = this.scene.add.container(0, 0).setDepth(5200).setVisible(false)
+  private createProximityPrompt():
+    Phaser.GameObjects.Container {
+    const container = this.scene.add
+      .container(0, 0)
+      .setDepth(5200)
+      .setVisible(false)
 
     const background = this.scene.add
-      .rectangle(0, 0, 175, 45, 0x5b8c4a, 0.96)
+      .rectangle(
+        0,
+        0,
+        175,
+        45,
+        0x5b8c4a,
+        0.96
+      )
       .setStrokeStyle(3, 0x111111)
 
     const keyboardKey = this.scene.add
@@ -185,12 +208,19 @@ export class ClientDialogueController {
       })
       .setOrigin(0.5)
 
-    container.add([background, keyboardKey, keyText, promptText])
+    container.add([
+      background,
+      keyboardKey,
+      keyText,
+      promptText,
+    ])
 
     return container
   }
 
-  private openDialogue(client: ClientDefinition): void {
+  private openDialogue(
+    client: ClientDefinition
+  ): void {
     if (this.panel) {
       return
     }
@@ -200,34 +230,60 @@ export class ClientDialogueController {
 
     this.player.setVelocity(0)
 
-    /*
-     * Close-up framing based on the supplied mock.
-     * The client remains large on the left while the
-     * fixed dialogue panel stays on the right.
-     */
-    this.mainCamera.pan(client.sprite.x + 175, client.sprite.y, 600, 'Sine.easeInOut')
+    this.mainCamera.pan(
+      client.sprite.x + 175,
+      client.sprite.y,
+      600,
+      'Sine.easeInOut'
+    )
 
-    this.mainCamera.zoomTo(2.05, 600, 'Sine.easeInOut')
+    this.mainCamera.zoomTo(
+      2.05,
+      600,
+      'Sine.easeInOut'
+    )
 
-    this.effects.showDialogueVignette(this.worldWidth, this.worldHeight, this.mainCamera)
+    this.effects.showDialogueVignette(
+      this.worldWidth,
+      this.worldHeight,
+      this.mainCamera
+    )
 
     this.createDialoguePanel(client)
   }
 
-  private createDialoguePanel(client: ClientDefinition): void {
+  private createDialoguePanel(
+    client: ClientDefinition
+  ): void {
     const panelWidth = 470
-    const panelLeft = this.worldWidth - panelWidth - 12
+    const panelLeft =
+      this.worldWidth - panelWidth - 12
+    const panelX =
+      panelLeft + panelWidth / 2
 
-    const panelX = panelLeft + panelWidth / 2
-
-    const panel = this.scene.add.container(0, 0).setScrollFactor(0).setDepth(6500)
+    const panel = this.scene.add
+      .container(0, 0)
+      .setScrollFactor(0)
+      .setDepth(6500)
 
     const panelBody = this.scene.add
-      .rectangle(panelX, this.worldHeight / 2, panelWidth, this.worldHeight - 28, 0xf4f7f9)
+      .rectangle(
+        panelX,
+        this.worldHeight / 2,
+        panelWidth,
+        this.worldHeight - 28,
+        0xf4f7f9
+      )
       .setStrokeStyle(4, 0x111111)
 
     const header = this.scene.add
-      .rectangle(panelX, 66, panelWidth, 90, 0xb98900)
+      .rectangle(
+        panelX,
+        66,
+        panelWidth,
+        90,
+        0xb98900
+      )
       .setStrokeStyle(4, 0x111111)
 
     const title = this.scene.add
@@ -246,6 +302,31 @@ export class ClientDialogueController {
       )
       .setScrollFactor(0)
       .setDepth(6600)
+    const clientAvatarBorder =
+      this.scene.add.circle(
+        panelLeft + 52,
+        160,
+        31,
+        0x2c2c2a
+      )
+
+    const clientAvatar = this.scene.add
+      .image(
+        panelLeft + 52,
+        162,
+        client.texture
+      )
+      .setDisplaySize(47, 68)
+
+    const clientBubble = this.scene.add
+      .rectangle(
+        panelLeft + 270,
+        175,
+        330,
+        100,
+        0xf4f7f9
+      )
+      .setStrokeStyle(2, 0xa1a7ad)
 
     const logElement = dialogueLog.node.querySelector<HTMLDivElement>('[data-client-dialogue-log]')
 
@@ -286,163 +367,342 @@ export class ClientDialogueController {
     }
 
     addMessage('client', 'Hi!')
+    const clientText = this.scene.add.text(
+      clientBubble.x - 145,
+      clientBubble.y - 18,
+      'Hi!',
+      {
+        color: '#2c2c2a',
+        fontFamily: 'Arial',
+        fontSize: '18px',
+        wordWrap: {
+          width: 290,
+        },
+      }
+    )
+
+    const playerAvatarBorder =
+      this.scene.add
+        .circle(
+          panelLeft + panelWidth - 52,
+          345,
+          31,
+          0x2c2c2a
+        )
+        .setVisible(false)
+
+    const playerAvatar = this.scene.add
+      .image(
+        panelLeft + panelWidth - 52,
+        347,
+        'player'
+      )
+      .setDisplaySize(47, 68)
+      .setVisible(false)
+
+    const playerBubble = this.scene.add
+      .rectangle(
+        panelLeft + 190,
+        345,
+        260,
+        90,
+        0xe8f0e5
+      )
+      .setStrokeStyle(2, 0x7e9975)
+      .setVisible(false)
+
+    const playerText = this.scene.add
+      .text(
+        playerBubble.x - 110,
+        playerBubble.y - 30,
+        '',
+        {
+          color: '#2c2c2a',
+          fontFamily: 'Arial',
+          fontSize: '16px',
+          wordWrap: {
+            width: 220,
+          },
+        }
+      )
+      .setVisible(false)
+
+    const finalClientAvatarBorder =
+      this.scene.add
+        .circle(
+          panelLeft + 52,
+          475,
+          31,
+          0x2c2c2a
+        )
+        .setVisible(false)
+
+    const finalClientAvatar =
+      this.scene.add
+        .image(
+          panelLeft + 52,
+          477,
+          client.texture
+        )
+        .setDisplaySize(47, 68)
+        .setVisible(false)
+
+    const finalClientBubble =
+      this.scene.add
+        .rectangle(
+          panelLeft + 270,
+          475,
+          330,
+          180,
+          0xf4f7f9
+        )
+        .setStrokeStyle(2, 0xa1a7ad)
+        .setVisible(false)
+
+    const finalClientText = this.scene.add
+      .text(
+        finalClientBubble.x - 145,
+        finalClientBubble.y - 75,
+        'Hi, nice to meet you!',
+        {
+          color: '#2c2c2a',
+          fontFamily: 'Arial',
+          fontSize: '16px',
+          wordWrap: {
+            width: 290,
+          },
+        }
+      )
+      .setVisible(false)
 
     const replyInput = this.scene.add
-      .dom(panelLeft + 205, this.worldHeight - 78)
+      .dom(
+        panelLeft + 205,
+        this.worldHeight - 78
+      )
       .createFromHTML(
         `
-        <input
-          name="clientMockReply"
-          maxlength="120"
-          aria-label="Reply to ${client.name}"
-          placeholder="Type your reply..."
-          style="
-            width: 310px;
-            height: 54px;
-            box-sizing: border-box;
-            border: 2px solid #d8c59e;
-            border-radius: 10px;
-            padding: 0 14px;
-            background: #ffffff;
-            color: #2c2c2a;
-            font-family: Arial, sans-serif;
-            font-size: 16px;
-            outline: none;
-          "
-        />
-      `
+          <input
+            name="clientReply"
+            maxlength="120"
+            aria-label="Reply to ${client.name}"
+            placeholder="Type your reply..."
+            style="
+              width: 310px;
+              height: 54px;
+              box-sizing: border-box;
+              border: 2px solid #d8c59e;
+              border-radius: 10px;
+              padding: 0 14px;
+              background: #ffffff;
+              color: #2c2c2a;
+              font-family: Arial, sans-serif;
+              font-size: 16px;
+              outline: none;
+            "
+          />
+        `
       )
       .setScrollFactor(0)
       .setDepth(6600)
 
-    const inputElement = replyInput.getChildByName('clientMockReply') as HTMLInputElement | null
+    const inputElement =
+      replyInput.getChildByName(
+        'clientReply'
+      ) as HTMLInputElement | null
 
-    const sendX = panelLeft + panelWidth - 47
-
-    const sendY = this.worldHeight - 78
+    const sendX =
+      panelLeft + panelWidth - 47
+    const sendY =
+      this.worldHeight - 78
 
     const sendButton = this.scene.add
-      .circle(sendX, sendY, 28, 0xe6e8e9)
+      .circle(
+        sendX,
+        sendY,
+        28,
+        0xe6e8e9
+      )
       .setStrokeStyle(4, 0x111111)
       .setInteractive({
         useHandCursor: true,
       })
 
-    /*
-     * Keep the existing preferred triangular control.
-     */
-    const sendTriangle = this.scene.add.graphics()
+    const sendTriangle =
+      this.scene.add.graphics()
 
     sendTriangle.fillStyle(0x2c2c2a)
 
-    sendTriangle.fillTriangle(sendX - 7, sendY - 11, sendX - 7, sendY + 11, sendX + 11, sendY)
+    sendTriangle.fillTriangle(
+      sendX - 7,
+      sendY - 11,
+      sendX - 7,
+      sendY + 11,
+      sendX + 11,
+      sendY
+    )
 
-    let replySent = false
+    let conversationComplete = false
     let requestInProgress = false
-    let hardcodedReplyIndex = 0
+    
+
+    const conversationHistory:
+      PersonaConversationMessage[] = []
 
     const sendOrClose = async () => {
       this.effects.pressButton(sendButton)
 
-      if (!replySent) {
-        const reply = inputElement?.value.trim() ?? ''
+      if (conversationComplete) {
+            if (!requestInProgress) {
+          this.closeDialogue()
+        }
+
+        return
+      }
+
+          const reply =
+        inputElement?.value.trim() ?? ''
 
         if (!reply || requestInProgress) {
           inputElement?.focus()
           return
         }
 
-        requestInProgress = true
-        addMessage('player', reply)
+      requestInProgress = true
 
-        const playerEndedLlmConversation = /^bye for now[.!?]*$/i.test(reply)
+      playerText
+        .setText(reply)
+        .setVisible(true)
 
-        if (inputElement) {
-          inputElement.value = ''
-          inputElement.disabled = true
-          inputElement.placeholder = 'Waiting for client response...'
-        }
+      playerAvatarBorder.setVisible(true)
+      playerAvatar.setVisible(true)
+      playerBubble.setVisible(true)
 
-        const pendingClientBubble = addMessage('client', 'Thinking...')
-
-        if (client.responseMode === 'hardcoded') {
-          const hardcodedReplies = client.hardcodedReplies ?? [
-            client.hardcodedReply ?? 'Hi, nice to meet you!',
-          ]
-
-          const hardcodedResponse =
-            hardcodedReplies[hardcodedReplyIndex] ??
-            hardcodedReplies.at(-1) ??
-            'Hi, nice to meet you!'
-
-          pendingClientBubble.textContent = hardcodedResponse
-          logElement.scrollTop = logElement.scrollHeight
-
-          hardcodedReplyIndex += 1
-
-          const hardcodedConversationComplete = hardcodedReplyIndex >= hardcodedReplies.length
-
-          replySent = hardcodedConversationComplete
-          requestInProgress = false
+      this.effects.animateBubble([
+        playerAvatarBorder,
+        playerAvatar,
+        playerBubble,
+        playerText,
+      ])
 
           if (inputElement) {
-            inputElement.disabled = hardcodedConversationComplete
-            inputElement.placeholder = hardcodedConversationComplete
-              ? 'Click the triangle again to close'
-              : 'Type your next reply...'
-
-            if (!hardcodedConversationComplete) {
-              inputElement.focus()
-            }
+            inputElement.value = ''
+            inputElement.disabled = true
+            inputElement.placeholder =
+          'Waiting for client response...'
           }
 
-          return
+      finalClientText.setText('Thinking...')
+
+      finalClientAvatarBorder.setVisible(true)
+      finalClientAvatar.setVisible(true)
+      finalClientBubble.setVisible(true)
+      finalClientText.setVisible(true)
+
+      this.effects.animateBubble(
+        [
+          finalClientAvatarBorder,
+          finalClientAvatar,
+          finalClientBubble,
+          finalClientText,
+        ],
+        300
+      )
+
+      if (
+        client.responseMode === 'hardcoded'
+      ) {
+        const hardcodedReply =
+          client.hardcodedReply ??
+          'Hi, nice to meet you!'
+
+        finalClientText.setText(
+          hardcodedReply
+        )
+
+        conversationHistory.push(
+          {
+            role: 'player',
+            content: reply,
+          },
+          {
+            role: 'persona',
+            content: hardcodedReply,
+          }
+        )
+
+        conversationComplete = true
+      } else if (!client.personaId) {
+        finalClientText.setText(
+          'Unable to load client response.'
+        )
+      } else {
+        const result =
+          await requestPersonaReply({
+            message: reply,
+            personaId: client.personaId,
+            history: conversationHistory,
+          })
+
+        conversationHistory.push(
+          {
+            role: 'player',
+            content: reply,
+          },
+          {
+            role: 'persona',
+            content: result.reply,
+          }
+        )
+
+        finalClientText.setText(
+          result.reply
+        )
+
+        const turnCount =
+  conversationHistory.filter(
+    (item) => item.role === 'player'
+  ).length
+
+conversationComplete =
+  result.conversationComplete ||
+  turnCount >= MAX_TURNS
+}
+
+requestInProgress = false
+
+      requestInProgress = false
+
+      if (inputElement) {
+        if (conversationComplete) {
+          inputElement.disabled = true
+          inputElement.placeholder =
+            'Conversation complete'
         } else {
-          if (!client.personaId) {
-            pendingClientBubble.textContent = 'Unable to load client response.'
-          } else {
-            const result = await requestPersonaReply({
-              message: reply,
-              personaId: client.personaId,
-            })
-
-            pendingClientBubble.textContent = result.reply
-          }
-
-          logElement.scrollTop = logElement.scrollHeight
+          inputElement.disabled = false
+          inputElement.placeholder =
+            'Type your reply...'
+          inputElement.focus()
         }
-
-        replySent = playerEndedLlmConversation
-        requestInProgress = false
-
-        if (inputElement) {
-          inputElement.disabled = playerEndedLlmConversation
-          inputElement.placeholder = playerEndedLlmConversation
-            ? 'Click the triangle again to close'
-            : 'Type your next reply...'
-
-          if (!playerEndedLlmConversation) {
-            inputElement.focus()
-          }
-        }
-
-        return
-      }
-
-      if (!requestInProgress) {
-        this.closeDialogue()
       }
     }
-    sendButton.on('pointerdown', sendOrClose)
 
-    inputElement?.addEventListener('keydown', (event) => {
+    sendButton.on(
+      'pointerdown',
+      sendOrClose
+    )
+
+    inputElement?.addEventListener(
+      'keydown',
+      (event) => {
       event.stopPropagation()
 
-      if (event.key === 'Enter') {
-        event.preventDefault()
-        sendOrClose()
+        if (event.key === 'Enter') {
+          event.preventDefault()
+          sendOrClose()
+        }
       }
-    })
+    )
 
     panel.add([panelBody, header, title, sendButton, sendTriangle])
 
@@ -457,7 +717,25 @@ export class ClientDialogueController {
 
     this.effects.animatePanel(panel)
 
-    this.effects.addButtonHover(sendButton)
+    this.effects.animateBubble(
+      [
+        clientAvatarBorder,
+        clientAvatar,
+        clientBubble,
+        clientText,
+      ],
+      250
+    )
+
+    this.effects.typeMessage(
+      clientText,
+      'Hi!',
+      400
+    )
+
+    this.effects.addButtonHover(
+      sendButton
+    )
   }
 
   private closeDialogue(): void {
@@ -474,12 +752,24 @@ export class ClientDialogueController {
 
     this.effects.hideDialogueVignette()
 
-    this.mainCamera.pan(this.worldWidth / 2, this.worldHeight / 2, 500, 'Sine.easeInOut')
+    this.mainCamera.pan(
+      this.worldWidth / 2,
+      this.worldHeight / 2,
+      500,
+      'Sine.easeInOut'
+    )
 
-    this.mainCamera.zoomTo(1, 500, 'Sine.easeInOut')
+    this.mainCamera.zoomTo(
+      1,
+      500,
+      'Sine.easeInOut'
+    )
 
-    this.scene.time.delayedCall(520, () => {
-      this.onClose()
-    })
+    this.scene.time.delayedCall(
+      520,
+      () => {
+        this.onClose()
+      }
+    )
   }
 }
