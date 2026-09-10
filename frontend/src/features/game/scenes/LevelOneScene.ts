@@ -680,10 +680,16 @@ export class LevelOneScene extends Phaser.Scene {
       const reply = inputElement?.value.trim() ?? ''
 
       if (!replyHasBeenSent) {
-        if (!reply) {
-          inputElement?.focus()
-          return
-        }
+  if (!reply) {
+    replyInput.destroy()
+    panel.destroy(true)
+
+    this.managerPanel = undefined
+    this.managerReplyInput = undefined
+
+    this.restoreRoomCamera(onContinue)
+    return
+  }
 
         replyHasBeenSent = true
 
