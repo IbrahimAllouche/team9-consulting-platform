@@ -448,11 +448,10 @@ export class LevelOneScene extends Phaser.Scene {
         this.homeButton.setVisible(true)
         this.notebookButton.setVisible(true)
 
-        /*
-         * TEST MANAGER DIALOGUE 1.
-         */
+
         this.showManagerPanel({
-          message:'Welcome! Follow me and I’ll show you where to get started.',
+          message:
+          "Welcome to IBM! We are excited to have you join us! Since you're new to consulting, we'll start with some training to help you get familiar with what the job is really like. Think of this as a safe space to practise, make mistakes, and learn along the way. Your first task is going to be finding a potential client to work with. Let's head over to the networking room.",
 
           onContinue: () => {
             this.managerLeadsPlayer()
@@ -481,12 +480,9 @@ export class LevelOneScene extends Phaser.Scene {
       ease: 'Sine.easeInOut',
 
       onComplete: () => {
-        /*
-         * TEST MANAGER DIALOGUE 2.
-         */
-        this.showManagerPanel({
+    this.showManagerPanel({
           message:
-            'Here we are. You can now explore the room and speak with the clients. Talk to each one, learn about their business needs, and decide which opportunity has the most potential.',
+  "One of the first things a consultant needs to learn is how to identify a good opportunity. That starts with talking to people and understanding what's happening in their business. As you speak with people around the room, pay attention to the challenges they're facing. What isn't working well? What are they trying to improve? Are there problems affecting their customers, employees, costs, or growth? You don't need to solve anything just yet. For now, your job is to listen and ask questions. A good consultant doesn't jump straight to a solution; they first try to understand the problem. You'll also have a notebook available to keep track of anything you think might be useful later. Focus on information that could help you understand whether there's a genuine opportunity. You can move around using the arrow keys or WASD. When you're close to someone, interact with them to start a conversation. Once you've spoken to everyone, come back to me and we'll decide which opportunity is worth pursuing.",
 
           onContinue: () => {
             this.interfaceOpen = false
