@@ -17,9 +17,14 @@ const TABLE_HEIGHT = 154
 const LEVEL_ONE_COMPLETION_KEY = 'ibm-level-one-completed'
 const LEVEL_ONE_MET_CLIENTS_KEY = 'ibm-level-one-met-clients'
 
-type ManagerDialogueStep = {
-  message: string
-  onContinue: () => void
+type ManagerConversationTurn = {
+  managerMessage: string
+  playerReply: string
+}
+
+type ManagerConversation = {
+  turns: readonly ManagerConversationTurn[]
+  onComplete: () => void
 }
 
 export class LevelOneScene extends Phaser.Scene {
@@ -43,6 +48,7 @@ export class LevelOneScene extends Phaser.Scene {
 
   private managerPanel?: Phaser.GameObjects.Container
   private managerReplyInput?: Phaser.GameObjects.DOMElement
+  private managerDialogueLog?: Phaser.GameObjects.DOMElement
   private menuPanel?: Phaser.GameObjects.Container
   private notebookPanel?: Phaser.GameObjects.Container
   private notebookInput?: Phaser.GameObjects.DOMElement
@@ -58,6 +64,10 @@ export class LevelOneScene extends Phaser.Scene {
   private levelCompletionStarted = false
   private exitReady = false
   private exitArrow?: Phaser.GameObjects.Container
+  private managerConversationHistory: Array<{
+    speaker: 'manager' | 'player'
+    message: string
+  }> = []
 
   private notes = ''
 
@@ -467,14 +477,23 @@ export class LevelOneScene extends Phaser.Scene {
         /*
          * TEST MANAGER DIALOGUE 1.
          */
-        this.showManagerPanel({
-  message:
-    "Welcome to IBM! We are excited to have you join us! Since you're new to consulting, we'll start with some training to help you get familiar with what the job is really like. Think of this as a safe space to practise, make mistakes, and learn along the way. Your first task is going to be finding a potential client to work with. Let's head over to the networking room.",
-
-  onContinue: () => {
-    this.managerLeadsPlayer()
-  },
-})
+        this.showManagerConversation({
+          turns: [
+            {
+              managerMessage:
+                "Welcome to IBM! We are excited to have you join us. Since you're new to consulting, we'll start with some training to help you get familiar with what the job is really like.",
+              playerReply: "Thank you! I'm excited to get started.",
+            },
+            {
+              managerMessage:
+                "Think of this as a safe space to practise, make mistakes, and learn along the way. Your first task is finding a potential client to work with. Let's head into the room.",
+              playerReply: "Sounds good. Let's head to the networking room.",
+            },
+          ],
+          onComplete: () => {
+            this.managerLeadsPlayer()
+          },
+        })
       },
     })
   }
@@ -501,15 +520,30 @@ export class LevelOneScene extends Phaser.Scene {
         /*
          * TEST MANAGER DIALOGUE 2.
          */
-        this.showManagerPanel({
-  message:
-    "One of the first things a consultant needs to learn is how to identify a good opportunity. That starts with talking to people and understanding what's happening in their business. As you speak with people around the room, pay attention to the challenges they're facing. What isn't working well? What are they trying to improve? Are there problems affecting their customers, employees, costs, or growth?",
-
-  onContinue: () => {
-    this.showManagerPanel({
-      message:
-        "You don't need to solve anything just yet. For now, your job is to listen and ask questions. A good consultant doesn't jump straight to a solution; they first try to understand the problem. Use your notebook to keep track of useful information. Move around using the arrow keys or WASD, interact with people nearby, and once you've spoken to everyone, come back to me so we can decide which opportunity is worth pursuing.",
-          onContinue: () => {
+        this.showManagerConversation({
+          turns: [
+            {
+              managerMessage:
+                "One of the first things a consultant needs to learn is how to identify a good opportunity. That starts with talking to people and understanding what's happening in their business.",
+              playerReply: 'What should I pay attention to when I speak with them?',
+            },
+            {
+              managerMessage:
+                "Pay attention to the challenges they're facing. What isn't working well? What are they trying to improve? Are there problems affecting their customers, employees, costs, or growth?",
+              playerReply: 'So I should understand the problem before thinking about a solution?',
+            },
+            {
+              managerMessage:
+                "Exactly. You don't need to solve anything just yet. Listen and ask questions. A good consultant doesn't jump straight to a solution; they first try to understand the problem.",
+              playerReply: "Got it. I'll focus on listening and asking useful questions.",
+            },
+            {
+              managerMessage:
+                "Use your notebook to keep track of anything useful. Move with the arrow keys or WASD and interact with people nearby. Once you've spoken to everyone, come back to me and we'll decide which opportunity is worth pursuing.",
+              playerReply: "I'll speak with everyone and come back when I'm done.",
+            },
+          ],
+          onComplete: () => {
             this.interfaceOpen = false
             this.controlsEnabled = true
           },
@@ -536,7 +570,231 @@ export class LevelOneScene extends Phaser.Scene {
     this.time.delayedCall(520, onComplete)
   }
 
-  private showManagerPanel({ message, onContinue }: ManagerDialogueStep): void {
+  private showManagerConversation({ turns, onComplete }: ManagerConversation): void {
+    this.closeManagerPanel()
+
+    if (turns.length === 0) {
+      onComplete()
+      return
+    }
+
+    this.interfaceOpen = true
+    this.controlsEnabled = false
+    this.zoomToManager()
+
+    const panelWidth = 470
+    const panelLeft = WORLD_WIDTH - panelWidth - 12
+    const panelX = panelLeft + panelWidth / 2
+    const panel = this.add.container(0, 0).setScrollFactor(0).setDepth(6000)
+    const panelBody = this.add
+      .rectangle(panelX, WORLD_HEIGHT / 2, panelWidth, WORLD_HEIGHT - 28, 0xf4f7f9)
+      .setStrokeStyle(4, 0x111111)
+    const header = this.add
+      .rectangle(panelX, 66, panelWidth, 90, 0xb98900)
+      .setStrokeStyle(4, 0x111111)
+    const title = this.add
+      .text(panelX, 66, 'Your Manager', {
+        color: '#111111',
+        fontFamily: 'Arial',
+        fontSize: '26px',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5)
+
+    // A DOM-based log gives the manager the same natural chat behaviour as the
+    // client conversations: bubbles grow with their text and old turns remain
+    // available through the scrollbar instead of being replaced on each step.
+    const dialogueLog = this.add
+      .dom(panelX, 344)
+      .createFromHTML(
+        `<div data-manager-dialogue-log role="log" aria-live="polite" style="width:430px;height:415px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;overflow-x:hidden;padding:10px 12px 18px;scroll-behavior:smooth;box-sizing:border-box;"></div>`
+      )
+      .setScrollFactor(0)
+      .setDepth(6100)
+    const logElement = dialogueLog.node.querySelector<HTMLDivElement>('[data-manager-dialogue-log]')
+
+    if (!logElement) {
+      dialogueLog.destroy()
+      panel.destroy(true)
+      throw new Error('Manager dialogue log could not be created.')
+    }
+
+    const appendMessage = (
+      speaker: 'manager' | 'player',
+      message: string,
+      animate = true
+    ): { row: HTMLDivElement; bubble: HTMLDivElement } => {
+      const row = document.createElement('div')
+      row.style.cssText = `display:flex;align-items:flex-start;gap:10px;flex-shrink:0;${speaker === 'player' ? 'flex-direction:row-reverse;' : ''}`
+
+      const avatarFrame = document.createElement('div')
+      avatarFrame.style.cssText =
+        'width:52px;height:52px;flex:0 0 52px;border:3px solid #2c2c2a;border-radius:50%;overflow:hidden;background:#fff;box-sizing:border-box;'
+
+      const avatar = document.createElement('img')
+      avatar.src =
+        speaker === 'manager'
+          ? '/assets/characters/npcs/character-04.png'
+          : '/assets/characters/npcs/character-03.png'
+      avatar.alt = speaker === 'manager' ? 'Your Manager' : 'You'
+      avatar.style.cssText = 'width:100%;height:100%;object-fit:cover;'
+      avatarFrame.appendChild(avatar)
+
+      const bubble = document.createElement('div')
+      bubble.textContent = message
+      bubble.style.cssText = `width:fit-content;max-width:320px;padding:12px 14px;border:2px solid ${speaker === 'player' ? '#7e9975' : '#a1a7ad'};border-radius:12px;background:${speaker === 'player' ? '#e8f0e5' : '#fff'};color:#2c2c2a;font:16px/1.4 Arial,sans-serif;white-space:pre-wrap;overflow-wrap:anywhere;box-sizing:border-box;`
+
+      row.append(avatarFrame, bubble)
+      logElement.appendChild(row)
+
+      // New turns slide into the conversation so pressing Send has an obvious
+      // visual result. Replayed history skips the animation when the panel reopens.
+      if (animate) {
+        row.animate(
+          [
+            { opacity: 0, transform: `translateX(${speaker === 'player' ? '18px' : '-18px'})` },
+            { opacity: 1, transform: 'translateX(0)' },
+          ],
+          { duration: 280, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }
+        )
+      }
+
+      requestAnimationFrame(() => {
+        logElement.scrollTop = logElement.scrollHeight
+      })
+
+      return { row, bubble }
+    }
+
+    // Re-render earlier manager turns when the manager walks to the networking
+    // room and opens the panel again, keeping the full introduction reviewable.
+    for (const entry of this.managerConversationHistory) {
+      appendMessage(entry.speaker, entry.message, false)
+    }
+
+    let turnIndex = 0
+    const showManagerTurn = (): void => {
+      const turn = turns[turnIndex]!
+      appendMessage('manager', turn.managerMessage)
+      this.managerConversationHistory.push({
+        speaker: 'manager',
+        message: turn.managerMessage,
+      })
+    }
+
+    showManagerTurn()
+
+    const replyInput = this.add
+      .dom(panelLeft + 205, WORLD_HEIGHT - 67)
+      .createFromHTML(
+        `<textarea name="managerScriptedReply" readonly rows="3" aria-label="Preloaded reply to manager" style="width:310px;height:76px;box-sizing:border-box;border:2px solid #d8c59e;border-radius:10px;padding:10px 14px;background:#ffffff;color:#2c2c2a;font:16px/1.3 Arial,sans-serif;outline:none;resize:none;overflow-y:auto;cursor:default;white-space:pre-wrap;"></textarea>`
+      )
+      .setScrollFactor(0)
+      .setDepth(6100)
+    const inputElement = replyInput.getChildByName(
+      'managerScriptedReply'
+    ) as HTMLTextAreaElement | null
+
+    if (inputElement) {
+      inputElement.value = turns[turnIndex]!.playerReply
+    }
+
+    const sendX = panelLeft + panelWidth - 47
+    const sendY = WORLD_HEIGHT - 67
+    const sendBackground = this.add
+      .circle(sendX, sendY, 28, 0xe6e8e9)
+      .setStrokeStyle(4, 0x111111)
+      .setInteractive({ useHandCursor: true })
+    const sendTriangle = this.add.graphics()
+    sendTriangle.fillStyle(0x2c2c2a)
+    sendTriangle.fillTriangle(sendX - 7, sendY - 11, sendX - 7, sendY + 11, sendX + 11, sendY)
+
+    let finishing = false
+    let waitingForManager = false
+    const sendPreloadedReply = (): void => {
+      if (finishing || waitingForManager) return
+
+      this.effects.pressButton(sendBackground)
+      const reply = turns[turnIndex]!.playerReply
+      appendMessage('player', reply)
+      this.managerConversationHistory.push({ speaker: 'player', message: reply })
+      turnIndex += 1
+
+      if (turnIndex < turns.length) {
+        waitingForManager = true
+        sendBackground.disableInteractive()
+        if (inputElement) {
+          inputElement.value = ''
+          inputElement.placeholder = 'Manager is replying...'
+          inputElement.disabled = true
+        }
+
+        // A short animated typing beat makes the exchange readable and prevents
+        // the next manager response from appearing in the same instant as Send.
+        const typingMessage = appendMessage('manager', '•••')
+        const typingAnimation = typingMessage.bubble.animate(
+          [{ opacity: 0.35 }, { opacity: 1 }, { opacity: 0.35 }],
+          { duration: 700, iterations: Infinity, easing: 'ease-in-out' }
+        )
+
+        this.time.delayedCall(850, () => {
+          typingAnimation.cancel()
+          typingMessage.row.remove()
+          showManagerTurn()
+          waitingForManager = false
+          sendBackground.setInteractive({ useHandCursor: true })
+
+          if (inputElement) {
+            inputElement.disabled = false
+            inputElement.placeholder = ''
+            inputElement.value = turns[turnIndex]!.playerReply
+            inputElement.scrollTop = 0
+          }
+        })
+        return
+      }
+
+      finishing = true
+      if (inputElement) {
+        inputElement.value = ''
+        inputElement.placeholder = 'Conversation complete'
+        inputElement.disabled = true
+      }
+      sendBackground.disableInteractive()
+
+      // Leave the final player bubble on screen briefly before returning to the
+      // room so the last Send still feels acknowledged rather than abrupt.
+      this.time.delayedCall(750, () => {
+        this.closeManagerPanel()
+        this.restoreRoomCamera(onComplete)
+      })
+    }
+
+    sendBackground.on('pointerdown', sendPreloadedReply)
+    inputElement?.addEventListener('keydown', (event) => {
+      event.stopPropagation()
+      if (event.key === 'Enter') {
+        event.preventDefault()
+        sendPreloadedReply()
+      }
+    })
+
+    panel.add([panelBody, header, title, sendBackground, sendTriangle])
+    this.cameras.main.ignore([panel, replyInput, dialogueLog])
+    this.managerPanel = panel
+    this.managerReplyInput = replyInput
+    this.managerDialogueLog = dialogueLog
+    this.effects.animatePanel(panel)
+    this.effects.addButtonHover(sendBackground)
+  }
+
+  private showManagerPanel({
+    message,
+    onContinue,
+  }: {
+    message: string
+    onContinue: () => void
+  }): void {
     this.closeManagerPanel()
 
     this.interfaceOpen = true
@@ -704,15 +962,15 @@ export class LevelOneScene extends Phaser.Scene {
 
       if (!replyHasBeenSent) {
         if (!reply) {
-  replyInput.destroy()
-  panel.destroy(true)
+          replyInput.destroy()
+          panel.destroy(true)
 
-  this.managerPanel = undefined
-  this.managerReplyInput = undefined
+          this.managerPanel = undefined
+          this.managerReplyInput = undefined
 
-  this.restoreRoomCamera(onContinue)
-  return
-}
+          this.restoreRoomCamera(onContinue)
+          return
+        }
 
         replyHasBeenSent = true
 
@@ -832,6 +1090,9 @@ export class LevelOneScene extends Phaser.Scene {
     this.managerReplyInput?.destroy()
     this.managerReplyInput = undefined
 
+    this.managerDialogueLog?.destroy()
+    this.managerDialogueLog = undefined
+
     this.managerPanel?.destroy(true)
     this.managerPanel = undefined
   }
@@ -889,28 +1150,41 @@ export class LevelOneScene extends Phaser.Scene {
       .setOrigin(0.5)
     const avatarBorder = this.add.circle(panelLeft + 52, 190, 31, 0x2c2c2a)
     const avatar = this.add.image(panelLeft + 52, 192, 'manager').setDisplaySize(47, 68)
-    const bubble = this.add
-      .rectangle(panelLeft + 270, 215, 330, 180, 0xffffff)
-      .setStrokeStyle(2, 0xa1a7ad)
+    const bubbleWidth = 330
+    const bubbleTop = 125
+    const bubblePadding = 20
     const message = this.add.text(
-      bubble.x - 145,
-      bubble.y - 68,
-      'Great job! You have spoken with every available client and completed Find a Lead. Head to the elevator and return to your office to begin Outreach.',
+      panelLeft + 105 + bubblePadding,
+      bubbleTop + bubblePadding,
+      "Great job! You've spoken with every available client and completed Find a Lead. Head to your office, review the people you met, and select the strongest opportunity. In Level 2, you'll begin planning your outreach to that client.",
       {
         color: '#2c2c2a',
         fontFamily: 'Arial',
         fontSize: '18px',
         lineSpacing: 7,
-        wordWrap: { width: 290 },
+        wordWrap: { width: bubbleWidth - bubblePadding * 2 },
       }
     )
+    // This final message is longer than the introductory manager prompts. Measure
+    // the wrapped Phaser text before drawing its background so future copy changes
+    // cannot spill below a fixed-height bubble again.
+    const bubbleHeight = message.height + bubblePadding * 2
+    const bubble = this.add
+      .rectangle(
+        panelLeft + 105 + bubbleWidth / 2,
+        bubbleTop + bubbleHeight / 2,
+        bubbleWidth,
+        bubbleHeight,
+        0xffffff
+      )
+      .setStrokeStyle(2, 0xa1a7ad)
 
     const continueButton = this.add
       .rectangle(panelX, WORLD_HEIGHT - 105, 220, 58, 0x5b8c4a)
       .setStrokeStyle(4, 0x111111)
       .setInteractive({ useHandCursor: true })
     const continueText = this.add
-      .text(panelX, WORLD_HEIGHT - 105, 'GO TO ELEVATOR', {
+      .text(panelX, WORLD_HEIGHT - 105, 'WALK TO THE DOOR', {
         color: '#ffffff',
         fontFamily: 'Arial',
         fontSize: '17px',

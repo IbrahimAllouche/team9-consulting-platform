@@ -4,6 +4,8 @@ import {
   requestPersonaReply,
 } from '@/features/game/dialogue/personaDialogue'
 
+// Mock the fetch boundary so every transport fallback remains deterministic and
+// CI never needs a Groq key or a deployed environment to verify client behaviour.
 describe('requestPersonaReply', () => {
   afterEach(() => {
     vi.restoreAllMocks()
@@ -17,7 +19,12 @@ describe('requestPersonaReply', () => {
         JSON.stringify({
           reply: 'Hello, consultant.',
           conversation_complete: false,
-          covered_info_points: [],
+          covered_info_points: ['business_problem'],
+          missing_info_points: ['urgency'],
+          coverage_ready: true,
+          ready_to_close: true,
+          conversation_hint: 'Wrap up the conversation.',
+          suggested_closing_reply: 'Thanks for your time.',
         }),
         {
           status: 200,
@@ -36,7 +43,13 @@ describe('requestPersonaReply', () => {
     expect(result).toEqual({
       reply: 'Hello, consultant.',
       conversationComplete: false,
-      coveredInfoPoints: [],
+      coveredInfoPoints: ['business_problem'],
+      missingInfoPoints: ['urgency'],
+      coverageReady: true,
+      readyToClose: true,
+      hint: 'Wrap up the conversation.',
+      suggestedClosingReply: 'Thanks for your time.',
+      completionReason: undefined,
       usedFallback: false,
       reason: 'success',
     })
@@ -49,6 +62,7 @@ describe('requestPersonaReply', () => {
           message: 'Hello',
           persona_id: 'test-level-1',
           history: [],
+          covered_info_points: [],
         }),
       })
     )
@@ -90,6 +104,46 @@ describe('requestPersonaReply', () => {
     expect(result.coveredInfoPoints).toEqual([])
     expect(result.usedFallback).toBe(true)
     expect(result.reason).toBe('network')
+  })
+
+  it('returns the fallback when the server response is not valid JSON', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response('not-json', {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      )
+    )
+
+    const result = await requestPersonaReply({
+      message: 'Hello',
+      personaId: 'test-level-1',
+    })
+
+    expect(result.reply).toBe(PERSONA_FALLBACK_MESSAGE)
+    expect(result.reason).toBe('invalid-response')
+  })
+
+  it('returns the fallback when the server omits a usable reply', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ reply: '   ' }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      )
+    )
+
+    const result = await requestPersonaReply({
+      message: 'Hello',
+      personaId: 'test-level-1',
+    })
+
+    expect(result.reply).toBe(PERSONA_FALLBACK_MESSAGE)
+    expect(result.reason).toBe('invalid-response')
   })
 
   it('aborts a slow request and returns the timeout fallback', async () => {
