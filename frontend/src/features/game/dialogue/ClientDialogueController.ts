@@ -1,6 +1,11 @@
 import Phaser from 'phaser'
 import { LevelOneEffects } from '../effects/LevelOneEffects'
 import { requestPersonaReply, type PersonaConversationMessage } from './personaDialogue'
+import {
+  GUIDED_WRAP_TURN,
+  MAXIMUM_CONVERSATION_TURNS,
+  SUGGESTED_CLOSING_REPLY,
+} from './conversationCompletion'
 
 export type ClientDefinition = {
   name: string
@@ -27,7 +32,6 @@ type ClientDialogueControllerOptions = {
 }
 
 const INTERACTION_DISTANCE = 185
-const MAX_TURNS = 10
 
 export class ClientDialogueController {
   private readonly scene: Phaser.Scene
@@ -288,7 +292,7 @@ export class ClientDialogueController {
         `
           <input
             name="clientReply"
-            maxlength="120"
+            maxlength="220"
             aria-label="Reply to ${client.name}"
             placeholder="Type your reply..."
             style="
@@ -332,6 +336,9 @@ export class ClientDialogueController {
     let requestInProgress = false
     let hardcodedReplyIndex = 0
     const conversationHistory: PersonaConversationMessage[] = []
+    // Retain confirmed facts for this open conversation. Sending them on the next
+    // request prevents a fluctuating coverage pass from erasing earned progress.
+    const coveredInfoPoints = new Set<string>()
 
     const sendOrClose = async () => {
       this.effects.pressButton(sendButton)
@@ -393,6 +400,7 @@ export class ClientDialogueController {
           message: reply,
           personaId: client.personaId,
           history: conversationHistory,
+          coveredInfoPoints: [...coveredInfoPoints],
         })
 
         pendingClientBubble.textContent = result.reply
@@ -400,10 +408,25 @@ export class ClientDialogueController {
           { role: 'player', content: reply },
           { role: 'persona', content: result.reply }
         )
+        result.coveredInfoPoints.forEach((point) => coveredInfoPoints.add(point))
 
         const turnCount = conversationHistory.filter((message) => message.role === 'player').length
+        // The server normally owns readiness. Mirrored local turn guards ensure a
+        // failed API cannot trap the player inside an infinite conversation.
+        const readyToClose = result.readyToClose || turnCount >= GUIDED_WRAP_TURN
         conversationComplete =
-          playerSaidByeForNow || result.conversationComplete || turnCount >= MAX_TURNS
+          playerSaidByeForNow ||
+          result.conversationComplete ||
+          turnCount >= MAXIMUM_CONVERSATION_TURNS
+
+        if (!conversationComplete && inputElement) {
+          if (readyToClose) {
+            // Prefill instead of auto-send so the player controls the final action
+            // and can edit the neutral closing wording before submitting it.
+            inputElement.value = result.suggestedClosingReply ?? SUGGESTED_CLOSING_REPLY
+          }
+          inputElement.placeholder = result.hint ?? 'Type your next reply...'
+        }
       }
 
       logElement.scrollTop = logElement.scrollHeight
@@ -412,9 +435,9 @@ export class ClientDialogueController {
 
       if (inputElement) {
         inputElement.disabled = conversationComplete
-        inputElement.placeholder = conversationComplete
-          ? 'Click the triangle again to close'
-          : 'Type your next reply...'
+        if (conversationComplete) {
+          inputElement.placeholder = 'Click the triangle again to close'
+        }
 
         if (!conversationComplete) {
           inputElement.focus()
