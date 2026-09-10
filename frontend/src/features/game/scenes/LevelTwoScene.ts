@@ -1,5 +1,9 @@
 import Phaser from 'phaser'
 import { LevelOneEffects } from '../effects/LevelOneEffects'
+import {
+  createOutreachLaptopFlow,
+  type OutreachEmailSubmission,
+} from '../dialogue/OutreachLaptopFlow'
 
 const WORLD_WIDTH = 1440
 const WORLD_HEIGHT = 720
@@ -37,11 +41,10 @@ export class LevelTwoScene extends Phaser.Scene {
   private interactionPrompt!: Phaser.GameObjects.Container
   private obstacleZones: Phaser.GameObjects.Zone[] = []
   private laptopOverlay?: Phaser.GameObjects.Container
+  private laptopFlow?: Phaser.GameObjects.DOMElement
   private menuPanel?: Phaser.GameObjects.Container
   private notebookPanel?: Phaser.GameObjects.Container
   private notebookInput?: Phaser.GameObjects.DOMElement
-  private selectedClient?: MetClient
-  private clientCardBackgrounds = new Map<string, Phaser.GameObjects.Rectangle>()
   private deskSequenceActive = false
   private lastFootstepAt = 0
   private notes = ''
@@ -568,9 +571,9 @@ export class LevelTwoScene extends Phaser.Scene {
   private openLaptopOverlay(): void {
     if (this.laptopOverlay) return
 
-    this.selectedClient = undefined
-    this.clientCardBackgrounds.clear()
-
+    // Only the room dimmer remains a Phaser canvas object. The complete laptop and
+    // task panel are rendered once by OutreachLaptopFlow, avoiding the duplicated
+    // canvas-and-DOM interface that previously appeared behind the wireframe UI.
     const overlay = this.add.container(0, 0).setScrollFactor(0).setDepth(7000)
     const dimmer = this.add.rectangle(
       WORLD_WIDTH / 2,
@@ -580,104 +583,26 @@ export class LevelTwoScene extends Phaser.Scene {
       0x17212a,
       0.72
     )
-    const laptopFrame = this.add
-      .rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 1250, 650, 0xb98900)
-      .setStrokeStyle(8, 0x2c2c2a)
-    const screen = this.add
-      .rectangle(490, WORLD_HEIGHT / 2, 780, 580, 0xf4f7f9)
-      .setStrokeStyle(6, 0x2c2c2a)
-    const activityPanel = this.add
-      .rectangle(1110, WORLD_HEIGHT / 2, 390, 580, 0xf4f7f9)
-      .setStrokeStyle(6, 0x2c2c2a)
-
-    const heading = this.add.text(125, 88, 'Choose a client for outreach', {
-      color: '#2c2c2a',
-      fontFamily: 'Arial',
-      fontSize: '30px',
-      fontStyle: 'bold',
-    })
-    const instruction = this.add.text(
-      125,
-      130,
-      'Clients you met during Find a Lead are available here.',
-      {
-        color: '#5f6264',
-        fontFamily: 'Arial',
-        fontSize: '18px',
-      }
-    )
-    const activityTitle = this.add
-      .text(1110, 92, 'Outreach details', {
-        color: '#2c2c2a',
-        fontFamily: 'Arial',
-        fontSize: '25px',
-        fontStyle: 'bold',
-      })
-      .setOrigin(0.5)
-    const selectedClientText = this.add
-      .text(1110, 210, 'Select a client\nto continue', {
-        align: 'center',
-        color: '#7b7f83',
-        fontFamily: 'Arial',
-        fontSize: '22px',
-        lineSpacing: 8,
-      })
-      .setOrigin(0.5)
-    const disabledAction = this.add
-      .rectangle(1110, 555, 310, 92, 0xefe1c7)
-      .setStrokeStyle(3, 0xd9bd8d)
-    const disabledLabel = this.add
-      .text(1110, 555, 'Response options\ncome in the next task', {
-        align: 'center',
-        color: '#92979c',
-        fontFamily: 'Arial',
-        fontSize: '17px',
-      })
-      .setOrigin(0.5)
-    const closeButton = this.add
-      .circle(1325, 62, 27, 0xf4f7f9)
-      .setStrokeStyle(4, 0x2c2c2a)
-      .setInteractive({ useHandCursor: true })
-    const closeLabel = this.add
-      .text(1325, 61, '×', {
-        color: '#2c2c2a',
-        fontFamily: 'Arial',
-        fontSize: '34px',
-        fontStyle: 'bold',
-      })
-      .setOrigin(0.5)
-
-    overlay.add([
-      dimmer,
-      laptopFrame,
-      screen,
-      activityPanel,
-      heading,
-      instruction,
-      activityTitle,
-      selectedClientText,
-      disabledAction,
-      disabledLabel,
-      closeButton,
-      closeLabel,
-    ])
+    overlay.add(dimmer)
 
     const clients = this.readMetClients()
-    clients.forEach((client, index) => {
-      const cardX = 260 + index * 330
-      const card = this.createClientCard(client, cardX, 340, () => {
-        this.selectedClient = client
-        this.updateClientCardSelection()
-        selectedClientText.setText(`${client.name}\nSelected for outreach`)
-        selectedClientText.setColor('#1f4f78')
-      })
-      overlay.add(card)
+
+    // The DOM layer recreates wireframe pages 2-10 while the Phaser objects above
+    // retain the physical laptop frame and boot animation. It exposes one clean
+    // submission boundary for Ibrahim's later grading and lunch-break card.
+    const outreachFlow = createOutreachLaptopFlow(this, {
+      clients,
+      onClose: () => this.closeLaptopOverlay(),
+      onEmailSent: (submission) => this.handleOutreachEmailSent(submission),
     })
+    this.laptopFlow = outreachFlow
+    this.cameras.main.ignore(outreachFlow)
 
-    this.createLaptopBootSequence(overlay)
-
-    closeButton.on('pointerdown', () => this.closeLaptopOverlay())
-    dimmer.setInteractive().on('pointerdown', () => this.closeLaptopOverlay())
+    // Do not make the dimmer interactive. The laptop interface is a DOM element
+    // layered above Phaser's canvas, and browser clicks can also reach the canvas
+    // beneath it. Previously, selecting a client therefore triggered this dimmer
+    // handler and immediately closed the workstation. The explicit × button is the
+    // only exit control, so every laptop interaction remains inside the seated view.
 
     this.laptopOverlay = overlay
     this.cameras.main.ignore(overlay)
@@ -691,131 +616,16 @@ export class LevelTwoScene extends Phaser.Scene {
     })
   }
 
-  private createLaptopBootSequence(overlay: Phaser.GameObjects.Container): void {
-    const bootLayer = this.add.container(0, 0).setDepth(7100)
-    const background = this.add
-      .rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 1238, 638, 0x173b59)
-      .setStrokeStyle(5, 0x84b4cf)
-    const glow = this.add.circle(WORLD_WIDTH / 2, 295, 78, 0x84b4cf, 0.16)
-    const laptopIcon = this.add.graphics()
-
-    laptopIcon.lineStyle(8, 0xf4f7f9)
-    laptopIcon.strokeRoundedRect(WORLD_WIDTH / 2 - 72, 220, 144, 94, 10)
-    laptopIcon.lineBetween(WORLD_WIDTH / 2 - 92, 330, WORLD_WIDTH / 2 + 92, 330)
-
-    const title = this.add
-      .text(WORLD_WIDTH / 2, 390, 'CONSULTANT WORKSTATION', {
-        color: '#ffffff',
-        fontFamily: 'Arial',
-        fontSize: '27px',
-        fontStyle: 'bold',
-        letterSpacing: 3,
+  private handleOutreachEmailSent(submission: OutreachEmailSubmission): void {
+    // This event is the intentional integration point for the grading card. This
+    // task stops after Send and does not fabricate a score, lunch transition,
+    // retry state, or Level 2 completion result.
+    window.dispatchEvent(
+      new CustomEvent<OutreachEmailSubmission>('level-two-email-submitted', {
+        detail: submission,
       })
-      .setOrigin(0.5)
-    const status = this.add
-      .text(WORLD_WIDTH / 2, 433, 'Loading client directory…', {
-        color: '#c7e5f3',
-        fontFamily: 'Arial',
-        fontSize: '17px',
-      })
-      .setOrigin(0.5)
-    const progressTrack = this.add
-      .rectangle(WORLD_WIDTH / 2, 480, 360, 18, 0x0f293d)
-      .setStrokeStyle(2, 0x84b4cf)
-    const progress = this.add
-      .rectangle(WORLD_WIDTH / 2 - 176, 480, 352, 10, 0xffd65a)
-      .setOrigin(0, 0.5)
-      .setScale(0, 1)
-    const scanLine = this.add.rectangle(WORLD_WIDTH / 2, 58, 1220, 3, 0xc7e5f3, 0.7)
-
-    bootLayer.add([background, glow, laptopIcon, title, status, progressTrack, progress, scanLine])
-    overlay.add(bootLayer)
-
-    this.tweens.add({
-      targets: glow,
-      scale: { from: 0.85, to: 1.25 },
-      alpha: { from: 0.12, to: 0.32 },
-      duration: 430,
-      yoyo: true,
-      repeat: 1,
-    })
-    this.tweens.add({
-      targets: progress,
-      scaleX: 1,
-      duration: 720,
-      ease: 'Cubic.easeInOut',
-    })
-    this.tweens.add({
-      targets: scanLine,
-      y: WORLD_HEIGHT - 58,
-      duration: 760,
-      ease: 'Sine.easeInOut',
-    })
-
-    this.time.delayedCall(780, () => {
-      status.setText('Client directory ready')
-      this.cameras.main.flash(120, 199, 229, 243)
-      this.tweens.add({
-        targets: bootLayer,
-        alpha: 0,
-        duration: 260,
-        ease: 'Sine.easeOut',
-        onComplete: () => bootLayer.destroy(true),
-      })
-    })
-  }
-
-  private createClientCard(
-    client: MetClient,
-    x: number,
-    y: number,
-    onSelect: () => void
-  ): Phaser.GameObjects.Container {
-    const card = this.add.container(x, y)
-    const background = this.add
-      .rectangle(0, 0, 260, 330, 0xffffff)
-      .setStrokeStyle(5, 0x2c2c2a)
-      .setInteractive({ useHandCursor: true })
-    this.clientCardBackgrounds.set(client.name, background)
-    const portraitTexture = this.textures.exists(client.texture) ? client.texture : 'client-three'
-    const portrait = this.add.image(0, -38, portraitTexture).setDisplaySize(120, 174)
-    const name = this.add
-      .text(0, 90, client.name, {
-        color: '#2c2c2a',
-        fontFamily: 'Arial',
-        fontSize: '22px',
-        fontStyle: 'bold',
-      })
-      .setOrigin(0.5)
-    const details = this.add
-      .text(0, 124, 'Met during Level 1', {
-        color: '#666a6e',
-        fontFamily: 'Arial',
-        fontSize: '16px',
-      })
-      .setOrigin(0.5)
-
-    card.add([background, portrait, name, details])
-
-    background.on('pointerover', () => background.setFillStyle(0xffe7bd))
-    background.on('pointerout', () => {
-      if (this.selectedClient?.name !== client.name) background.setFillStyle(0xffffff)
-    })
-    background.on('pointerdown', () => {
-      onSelect()
-    })
-
-    return card
-  }
-
-  private updateClientCardSelection(): void {
-    // Repaint every card from the same selected value. This prevents a previous
-    // client from looking selected after the player chooses somebody else.
-    for (const [clientName, background] of this.clientCardBackgrounds) {
-      const isSelected = clientName === this.selectedClient?.name
-      background.setFillStyle(isSelected ? 0xffdda3 : 0xffffff)
-      background.setStrokeStyle(isSelected ? 7 : 5, isSelected ? 0x1f4f78 : 0x2c2c2a)
-    }
+    )
+    this.showToast(`Email sent to ${submission.client.name}`)
   }
 
   private readMetClients(): MetClient[] {
@@ -855,7 +665,12 @@ export class LevelTwoScene extends Phaser.Scene {
     if (!overlay) return
 
     this.laptopOverlay = undefined
-    this.clientCardBackgrounds.clear()
+
+    // Phaser DOM elements must stay on the scene display list instead of becoming
+    // Container children. Destroy the separately owned element alongside its canvas
+    // frame so no invisible HTML remains after closing the laptop.
+    this.laptopFlow?.destroy()
+    this.laptopFlow = undefined
 
     this.tweens.add({
       targets: overlay,
