@@ -481,17 +481,24 @@ export class LevelOneScene extends Phaser.Scene {
 
       onComplete: () => {
     this.showManagerPanel({
-          message:
-  "One of the first things a consultant needs to learn is how to identify a good opportunity. That starts with talking to people and understanding what's happening in their business. As you speak with people around the room, pay attention to the challenges they're facing. What isn't working well? What are they trying to improve? Are there problems affecting their customers, employees, costs, or growth? You don't need to solve anything just yet. For now, your job is to listen and ask questions. A good consultant doesn't jump straight to a solution; they first try to understand the problem. You'll also have a notebook available to keep track of anything you think might be useful later. Focus on information that could help you understand whether there's a genuine opportunity. You can move around using the arrow keys or WASD. When you're close to someone, interact with them to start a conversation. Once you've spoken to everyone, come back to me and we'll decide which opportunity is worth pursuing.",
+  message:
+    "One of the first things a consultant needs to learn is how to identify a good opportunity. That starts with talking to people and understanding what's happening in their business. As you speak with people around the room, pay attention to the challenges they're facing. What isn't working well? What are they trying to improve? Are there problems affecting their customers, employees, costs, or growth?",
 
-          onContinue: () => {
-            this.interfaceOpen = false
-            this.controlsEnabled = true
-          },
-        })
+  onContinue: () => {
+    this.showManagerPanel({
+      message:
+        "You don't need to solve anything just yet. For now, your job is to listen and ask questions. A good consultant doesn't jump straight to a solution; they first try to understand the problem. Use your notebook to keep track of useful information. Move around using the arrow keys or WASD, interact with people nearby, and once you've spoken to everyone, come back to me so we can decide which opportunity is worth pursuing.",
+
+      onContinue: () => {
+        this.interfaceOpen = false
+        this.controlsEnabled = true
       },
     })
-  }
+  },
+})
+        },
+  })
+}
 
   private zoomToManager(): void {
     this.cameras.main.pan(this.manager.x + 155, this.manager.y, 650, 'Sine.easeInOut')
