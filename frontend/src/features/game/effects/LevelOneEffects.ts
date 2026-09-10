@@ -220,23 +220,44 @@ export class LevelOneEffects {
   typeMessage(textObject: Phaser.GameObjects.Text, message: string, delay = 350): void {
     textObject.setText('')
 
-    this.scene.time.delayedCall(delay, () => {
+    let typingTimer: Phaser.Time.TimerEvent | undefined
+
+    const delayedStart = this.scene.time.delayedCall(delay, () => {
+      // A player can advance or close a dialogue before this delayed animation
+      // begins. Do not create a timer for a text object that has already been
+      // destroyed with its panel.
+      if (!textObject.active || !textObject.scene) {
+        return
+      }
+
       let characterIndex = 0
 
-      const timer = this.scene.time.addEvent({
+      typingTimer = this.scene.time.addEvent({
         delay: 22,
         loop: true,
 
         callback: () => {
+          // Phaser destroys every child when its dialogue container closes. Stop
+          // the typewriter immediately instead of drawing into a disposed canvas.
+          if (!textObject.active || !textObject.scene) {
+            typingTimer?.remove()
+            return
+          }
+
           characterIndex += 1
 
           textObject.setText(message.slice(0, characterIndex))
 
           if (characterIndex >= message.length) {
-            timer.remove()
+            typingTimer?.remove()
           }
         },
       })
+    })
+
+    textObject.once('destroy', () => {
+      delayedStart.remove()
+      typingTimer?.remove()
     })
   }
 

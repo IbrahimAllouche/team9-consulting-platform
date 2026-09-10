@@ -356,6 +356,11 @@ export class ClientDialogueController {
       requestInProgress = true
       addMessage('player', reply)
 
+      // The API can return the local fallback before its server-side completion
+      // check runs (for example when no API key is available). Preserve the agreed
+      // explicit exit in the UI as well so "bye for now" always ends the client.
+      const playerSaidByeForNow = /^bye for now[.!?]*$/i.test(reply)
+
       if (inputElement) {
         inputElement.value = ''
         inputElement.disabled = true
@@ -397,7 +402,8 @@ export class ClientDialogueController {
         )
 
         const turnCount = conversationHistory.filter((message) => message.role === 'player').length
-        conversationComplete = result.conversationComplete || turnCount >= MAX_TURNS
+        conversationComplete =
+          playerSaidByeForNow || result.conversationComplete || turnCount >= MAX_TURNS
       }
 
       logElement.scrollTop = logElement.scrollHeight
