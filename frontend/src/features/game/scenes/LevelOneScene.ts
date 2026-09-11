@@ -1316,9 +1316,21 @@ export class LevelOneScene extends Phaser.Scene {
 
     const previousInterfaceState = this.interfaceOpen
     const previousControlState = this.controlsEnabled
+    const clientReplyWasVisible = this.clientDialogue?.hasVisibleDialogueDom() ?? false
+    const managerReplyWasVisible = this.managerReplyInput?.visible ?? false
+    const managerLogWasVisible = this.managerDialogueLog?.visible ?? false
+    const notebookInputWasVisible = this.notebookInput?.visible ?? false
 
     this.interfaceOpen = true
     this.controlsEnabled = false
+
+    // Phaser DOM elements always sit above canvas-rendered objects. Hide any open
+    // interface DOM while the home menu is active so the dimmer and menu form one
+    // uninterrupted top layer instead of dialogue bubbles bleeding through it.
+    this.clientDialogue?.setDialogueDomVisible(false)
+    this.managerReplyInput?.setVisible(false)
+    this.managerDialogueLog?.setVisible(false)
+    this.notebookInput?.setVisible(false)
 
     const menu = this.add.container(0, 0).setScrollFactor(0).setDepth(7000)
 
@@ -1344,6 +1356,10 @@ export class LevelOneScene extends Phaser.Scene {
         this.menuPanel = undefined
         this.interfaceOpen = previousInterfaceState
         this.controlsEnabled = previousControlState
+        this.clientDialogue?.setDialogueDomVisible(clientReplyWasVisible)
+        this.managerReplyInput?.setVisible(managerReplyWasVisible)
+        this.managerDialogueLog?.setVisible(managerLogWasVisible)
+        this.notebookInput?.setVisible(notebookInputWasVisible)
       }
     )
 
