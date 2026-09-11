@@ -86,7 +86,4 @@ export interface PortfolioProgress {
   _schemaVersion: 1
 }
 
-export type CreateUserProfileInput = Omit<
-  UserProfile,
-  'createdAt' | 'updatedAt'
->
+export type CreateUserProfileInput = Omit<UserProfile, 'createdAt' | 'updatedAt'>
