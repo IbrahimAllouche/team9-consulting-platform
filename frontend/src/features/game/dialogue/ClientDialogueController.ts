@@ -2,6 +2,8 @@ import Phaser from 'phaser'
 import { LevelOneEffects } from '../effects/LevelOneEffects'
 import { requestPersonaReply, type PersonaConversationMessage } from './personaDialogue'
 import {
+  getContextualConversationHint,
+  getPersonaCompletionConfig,
   GUIDED_WRAP_TURN,
   MAXIMUM_CONVERSATION_TURNS,
   SUGGESTED_CLOSING_REPLY,
@@ -56,6 +58,8 @@ export class ClientDialogueController {
   private panel?: Phaser.GameObjects.Container
   private replyInput?: Phaser.GameObjects.DOMElement
   private dialogueLog?: Phaser.GameObjects.DOMElement
+  private hintCard?: Phaser.GameObjects.DOMElement
+  private hintVisibleBeforeTemporaryHide = false
   private activeConversationCompleted = false
 
   constructor({
@@ -131,13 +135,37 @@ export class ClientDialogueController {
   destroy(): void {
     this.replyInput?.destroy()
     this.dialogueLog?.destroy()
+    this.hintCard?.destroy()
     this.panel?.destroy(true)
     this.proximityPrompt.destroy(true)
 
     this.replyInput = undefined
     this.dialogueLog = undefined
+    this.hintCard = undefined
     this.panel = undefined
     this.activeClient = undefined
+  }
+
+  /**
+   * Phaser DOM elements are rendered above the game canvas, regardless of a
+   * canvas object's depth. Temporarily hiding them lets full-screen scene menus
+   * correctly cover the entire dialogue UI, then restore it without losing state.
+   */
+  hasVisibleDialogueDom(): boolean {
+    return Boolean(this.replyInput?.visible || this.dialogueLog?.visible)
+  }
+
+  setDialogueDomVisible(visible: boolean): void {
+    if (!visible) {
+      this.hintVisibleBeforeTemporaryHide = this.hintCard?.visible ?? false
+    }
+
+    this.replyInput?.setVisible(visible)
+    this.dialogueLog?.setVisible(visible)
+
+    // A hint may already be intentionally hidden because the API failed or the
+    // conversation finished. Never make it reappear solely because a menu closed.
+    this.hintCard?.setVisible(visible && this.hintVisibleBeforeTemporaryHide)
   }
 
   private findClosestClient(): ClientDefinition | undefined {
@@ -316,6 +344,53 @@ export class ClientDialogueController {
 
     const inputElement = replyInput.getChildByName('clientReply') as HTMLInputElement | null
 
+    // Keep coaching beside the control it explains. Placing the hint immediately
+    // above the reply field makes its purpose clear and leaves the room controls,
+    // characters, and conversation history unobstructed.
+    const initialHint =
+      client.responseMode === 'llm' && client.personaId
+        ? getContextualConversationHint({
+            config: getPersonaCompletionConfig(client.personaId),
+            coveredInfoPoints: [],
+            playerTurnCount: 0,
+          })
+        : undefined
+    const hintCard = this.scene.add
+      .dom(panelLeft + 205, this.worldHeight - 139)
+      .createFromHTML(
+        `<div data-client-hint style="width:310px;min-height:42px;display:flex;align-items:center;gap:8px;padding:7px 12px;box-sizing:border-box;border:2px solid #d8c59e;border-radius:10px;background:#fff4d6;color:#1f4f78;font:700 14px/1.25 Arial,sans-serif;box-shadow:3px 3px 0 rgba(44,44,42,.2);pointer-events:none;"><span aria-hidden="true" style="font-size:18px;">💡</span><span data-client-hint-text></span></div>`
+      )
+      .setScrollFactor(0)
+      .setDepth(6590)
+      .setVisible(Boolean(initialHint))
+    const hintTextElement =
+      hintCard.node.querySelector<HTMLSpanElement>('[data-client-hint-text]')
+
+    if (hintTextElement && initialHint) {
+      hintTextElement.textContent = initialHint
+    }
+
+    // A restrained bob makes the next-step guidance noticeable without competing
+    // with the dialogue animation. The DOM card remains non-interactive.
+    this.scene.tweens.add({
+      targets: hintCard,
+      y: hintCard.y - 5,
+      duration: 900,
+      ease: 'Sine.easeInOut',
+      yoyo: true,
+      repeat: -1,
+    })
+
+    const showHint = (hint?: string) => {
+      if (!hintTextElement || !hint) {
+        hintCard.setVisible(false)
+        return
+      }
+
+      hintTextElement.textContent = hint
+      hintCard.setVisible(true)
+    }
+
     const sendX = panelLeft + panelWidth - 47
     const sendY = this.worldHeight - 78
 
@@ -425,7 +500,8 @@ export class ClientDialogueController {
             // and can edit the neutral closing wording before submitting it.
             inputElement.value = result.suggestedClosingReply ?? SUGGESTED_CLOSING_REPLY
           }
-          inputElement.placeholder = result.hint ?? 'Type your next reply...'
+          showHint(readyToClose ? 'Send the closing reply.' : result.hint)
+          inputElement.placeholder = 'Type your reply...'
         }
       }
 
@@ -436,6 +512,7 @@ export class ClientDialogueController {
       if (inputElement) {
         inputElement.disabled = conversationComplete
         if (conversationComplete) {
+          hintCard.setVisible(false)
           inputElement.placeholder = 'Click the triangle again to close'
         }
 
@@ -461,11 +538,12 @@ export class ClientDialogueController {
     /*
      * Dialogue stays fixed while the room camera zooms.
      */
-    this.mainCamera.ignore([panel, replyInput, dialogueLog])
+    this.mainCamera.ignore([panel, replyInput, dialogueLog, hintCard])
 
     this.panel = panel
     this.replyInput = replyInput
     this.dialogueLog = dialogueLog
+    this.hintCard = hintCard
 
     this.effects.animatePanel(panel)
 
@@ -480,6 +558,9 @@ export class ClientDialogueController {
 
     this.dialogueLog?.destroy()
     this.dialogueLog = undefined
+
+    this.hintCard?.destroy()
+    this.hintCard = undefined
 
     this.panel?.destroy(true)
     this.panel = undefined
