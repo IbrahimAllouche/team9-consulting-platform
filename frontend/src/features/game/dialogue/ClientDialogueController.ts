@@ -195,7 +195,7 @@ export class ClientDialogueController {
     const container = this.scene.add.container(0, 0).setDepth(5200).setVisible(false)
 
     const background = this.scene.add
-      .rectangle(0, 0, 175, 45, 0x5b8c4a, 0.96)
+      .rectangle(0, 0, 175, 45, 0x002d9c, 0.96)
       .setStrokeStyle(3, 0x111111)
 
     const keyboardKey = this.scene.add
@@ -253,16 +253,16 @@ export class ClientDialogueController {
     const panel = this.scene.add.container(0, 0).setScrollFactor(0).setDepth(6500)
 
     const panelBody = this.scene.add
-      .rectangle(panelX, this.worldHeight / 2, panelWidth, this.worldHeight - 28, 0xf4f7f9)
+      .rectangle(panelX, this.worldHeight / 2, panelWidth, this.worldHeight - 28, 0xffffff)
       .setStrokeStyle(4, 0x111111)
 
     const header = this.scene.add
-      .rectangle(panelX, 66, panelWidth, 90, 0xb98900)
+      .rectangle(panelX, 66, panelWidth, 90, 0xd0e2ff)
       .setStrokeStyle(4, 0x111111)
 
     const title = this.scene.add
       .text(panelX, 66, client.name, {
-        color: '#111111',
+        color: '#002d9c',
         fontFamily: 'Arial',
         fontSize: '27px',
         fontStyle: 'bold',
@@ -291,7 +291,7 @@ export class ClientDialogueController {
 
       const avatarFrame = document.createElement('div')
       avatarFrame.style.cssText =
-        'width:52px;height:52px;flex:0 0 52px;border:3px solid #2c2c2a;border-radius:50%;overflow:hidden;background:#fff;box-sizing:border-box;'
+        'width:52px;height:52px;flex:0 0 52px;border:3px solid #002d9c;border-radius:50%;overflow:hidden;background:#fff;box-sizing:border-box;'
 
       const avatar = document.createElement('img')
       avatar.src =
@@ -306,7 +306,7 @@ export class ClientDialogueController {
 
       const bubble = document.createElement('div')
       bubble.textContent = message
-      bubble.style.cssText = `width:fit-content;max-width:320px;padding:12px 14px;border:2px solid ${speaker === 'player' ? '#7e9975' : '#a1a7ad'};border-radius:12px;background:${speaker === 'player' ? '#e8f0e5' : '#fff'};color:#2c2c2a;font:16px/1.4 Arial,sans-serif;white-space:pre-wrap;overflow-wrap:anywhere;box-sizing:border-box;`
+      bubble.style.cssText = `width:fit-content;max-width:320px;padding:12px 14px;border:2px solid ${speaker === 'player' ? '#002d9c' : '#a6c8ff'};border-radius:12px;background:${speaker === 'player' ? '#edf5ff' : '#fff'};color:#161616;font:16px/1.4 Arial,sans-serif;white-space:pre-wrap;overflow-wrap:anywhere;box-sizing:border-box;`
 
       row.append(avatarFrame, bubble)
       logElement.appendChild(row)
@@ -330,7 +330,7 @@ export class ClientDialogueController {
               width: 310px;
               height: 54px;
               box-sizing: border-box;
-              border: 2px solid #d8c59e;
+              border: 2px solid #a6c8ff;
               border-radius: 10px;
               padding: 0 14px;
               background: #ffffff;
@@ -361,7 +361,7 @@ export class ClientDialogueController {
     const hintCard = this.scene.add
       .dom(panelLeft + 205, this.worldHeight - 139)
       .createFromHTML(
-        `<div data-client-hint style="width:310px;min-height:42px;display:flex;align-items:center;gap:8px;padding:7px 12px;box-sizing:border-box;border:2px solid #d8c59e;border-radius:10px;background:#fff4d6;color:#1f4f78;font:700 14px/1.25 Arial,sans-serif;box-shadow:3px 3px 0 rgba(44,44,42,.2);pointer-events:none;"><span aria-hidden="true" style="font-size:18px;">💡</span><span data-client-hint-text></span></div>`
+        `<div data-client-hint style="width:310px;min-height:42px;display:flex;align-items:center;gap:8px;padding:7px 12px;box-sizing:border-box;border:2px solid #a6c8ff;border-radius:10px;background:#edf5ff;color:#002d9c;font:700 14px/1.25 Arial,sans-serif;box-shadow:3px 3px 0 rgba(0,45,156,.16);pointer-events:none;"><span aria-hidden="true" style="font-size:18px;">💡</span><span data-client-hint-text></span></div>`
       )
       .setScrollFactor(0)
       .setDepth(6590)
@@ -397,7 +397,7 @@ export class ClientDialogueController {
     const sendY = this.worldHeight - 78
 
     const sendButton = this.scene.add
-      .circle(sendX, sendY, 28, 0xe6e8e9)
+      .circle(sendX, sendY, 28, 0x002d9c)
       .setStrokeStyle(4, 0x111111)
       .setInteractive({
         useHandCursor: true,
@@ -405,7 +405,7 @@ export class ClientDialogueController {
 
     const sendTriangle = this.scene.add.graphics()
 
-    sendTriangle.fillStyle(0x2c2c2a)
+    sendTriangle.fillStyle(0xffffff)
 
     sendTriangle.fillTriangle(sendX - 7, sendY - 11, sendX - 7, sendY + 11, sendX + 11, sendY)
 
