@@ -5,6 +5,7 @@ import { getSessionsCollection } from '@/lib/firebase/firestore'
 import { recordStageCompletion } from '@/features/progress/actions/progress.actions'
 import { clientKeyFromPersonaId } from '@/features/progress/clients'
 import { LevelOneEffects } from '../effects/LevelOneEffects'
+import { readNotebook, saveNotebook } from '../notebookStorage'
 import {
   createOutreachLaptopFlow,
   type OutreachEmailSubmission,
@@ -69,14 +70,15 @@ export class LevelTwoScene extends Phaser.Scene {
     this.load.image('client-three', '/assets/characters/npcs/character-04.png')
     this.load.image('level-two-desk', '/assets/game/level-2/furniture/level-two-desk.png')
     this.load.image('level-two-chair', '/assets/game/level-2/furniture/level-two-chair.png')
-    this.load.image('level-two-couch', '/assets/game/level-2/furniture/level-two-couch.png')
+    this.load.image('level-two-couch', '/assets/game/level-2/furniture/level-two-couch-blue.png')
     this.load.image('level-two-plant', '/assets/game/level-2/furniture/level-two-plant.png')
     this.load.image('level-two-lunch-scene', '/assets/game/level-2/lunch-break-scene.png')
   }
 
   create(): void {
+    this.notes = readNotebook(this.preparationMode ? 3 : 2)
     this.physics.world.setBounds(0, WALKABLE_TOP, WORLD_WIDTH, WALKABLE_BOTTOM - WALKABLE_TOP)
-    this.cameras.main.setBackgroundColor('#efe1c7')
+    this.cameras.main.setBackgroundColor('#ffffff')
     this.effects = new LevelOneEffects(this)
 
     this.createOffice()
@@ -92,7 +94,6 @@ export class LevelTwoScene extends Phaser.Scene {
     // Everything created so far belongs to the physical room. A second camera
     // renders interface objects so menus stay fixed while the room camera zooms.
     const worldObjects = [...this.children.list]
-    this.createNavigationButtons()
     this.interactionPrompt = this.createInteractionPrompt()
     this.createInterfaceCamera(worldObjects)
 
@@ -101,6 +102,13 @@ export class LevelTwoScene extends Phaser.Scene {
 
   override update(): void {
     if (!this.player) return
+
+    if (document.querySelector('[data-level-navigation-dialog]')) {
+      this.player.setVelocity(0)
+      this.interactionPrompt.setVisible(false)
+      this.effects.updateWalking(this.player, false, this.time.now)
+      return
+    }
 
     if (this.laptopOverlay || this.menuPanel || this.notebookPanel || this.deskSequenceActive) {
       this.player.setVelocity(0)
@@ -135,7 +143,7 @@ export class LevelTwoScene extends Phaser.Scene {
   }
 
   private createOffice(): void {
-    this.add.rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, 0xefe1c7)
+    this.add.rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, 0xffffff)
 
     this.createWindows()
     this.createElevator()
@@ -180,7 +188,7 @@ export class LevelTwoScene extends Phaser.Scene {
   private createWindows(): void {
     const windows = this.add.graphics().setDepth(1)
 
-    windows.fillStyle(0xc7e5f3)
+    windows.fillStyle(0xf7fbff)
     windows.fillRect(8, 8, WORLD_WIDTH - 16, 330)
     windows.lineStyle(6, 0x2c2c2a)
     windows.strokeRect(8, 8, WORLD_WIDTH - 16, 330)
@@ -225,7 +233,7 @@ export class LevelTwoScene extends Phaser.Scene {
       })
     }
 
-    this.add.rectangle(WORLD_WIDTH / 2, 345, WORLD_WIDTH - 16, 16, 0x956127).setDepth(2)
+    this.add.rectangle(WORLD_WIDTH / 2, 345, WORLD_WIDTH - 16, 16, 0xa6c8ff).setDepth(2)
   }
 
   private createElevator(): void {
@@ -269,7 +277,7 @@ export class LevelTwoScene extends Phaser.Scene {
 
   private createDeskObjectiveBeacon(): void {
     const beacon = this.add.container(290, 278).setDepth(430)
-    const ring = this.add.circle(0, 0, 27, 0xffd65a, 0.14).setStrokeStyle(4, 0xc98a3e, 0.9)
+    const ring = this.add.circle(0, 0, 27, 0xd0e2ff, 0.14).setStrokeStyle(4, 0x002d9c, 0.9)
     const icon = this.add
       .text(0, -1, '!', {
         color: '#1f4f78',
@@ -331,7 +339,7 @@ export class LevelTwoScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(5000)
     const homeHitArea = this.add
-      .circle(0, 0, 31, 0x5b8c4a)
+      .circle(0, 0, 31, 0x002d9c)
       .setStrokeStyle(3, 0x2c2c2a)
       .setInteractive({ useHandCursor: true })
     const house = this.add.graphics()
@@ -451,7 +459,7 @@ export class LevelTwoScene extends Phaser.Scene {
         this.player.y + this.player.displayHeight * 0.43,
         22,
         8,
-        0x956127,
+        0x78a9ff,
         0.22
       )
       .setDepth(this.player.y - 3)
@@ -491,10 +499,12 @@ export class LevelTwoScene extends Phaser.Scene {
   }
 
   private updateDeskInteraction(): void {
-    // This is intentionally a narrow rectangle directly below the chair. A circular
-    // radius allowed E to activate from the desk sides and did not feel intentional.
+    // Measure distance to the chair's visible edge so either side is approachable.
+    const chairBounds = this.chair.getBounds()
+    const nearestX = Phaser.Math.Clamp(this.player.x, chairBounds.left, chairBounds.right)
+    const nearestY = Phaser.Math.Clamp(this.player.y, chairBounds.top, chairBounds.bottom)
     const canUseLaptop =
-      this.player.x >= 190 && this.player.x <= 390 && this.player.y >= 520 && this.player.y <= 675
+      Phaser.Math.Distance.Between(this.player.x, this.player.y, nearestX, nearestY) < 110
 
     this.interactionPrompt.setVisible(canUseLaptop)
 
@@ -774,11 +784,11 @@ export class LevelTwoScene extends Phaser.Scene {
       .image(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 'level-two-lunch-scene')
       .setDisplaySize(WORLD_WIDTH, WORLD_HEIGHT)
 
-    const panelShadow = this.add.rectangle(1190, 370, 470, 570, 0x2c2c2a, 0.92)
+    const panelShadow = this.add.rectangle(1190, 370, 470, 570, 0xd0e2ff, 0.9)
     const questPanel = this.add
-      .rectangle(1180, 360, 470, 570, 0xf7f1e7, 0.97)
-      .setStrokeStyle(6, 0x2c2c2a)
-    const panelHeader = this.add.rectangle(1180, 118, 470, 86, 0xb98900)
+      .rectangle(1180, 360, 470, 570, 0xffffff, 0.97)
+      .setStrokeStyle(6, 0xa6c8ff)
+    const panelHeader = this.add.rectangle(1180, 118, 470, 86, 0xd0e2ff)
     const title = this.add
       .text(1180, 118, 'LUNCH BREAK', {
         fontFamily: 'Arial',
@@ -792,9 +802,9 @@ export class LevelTwoScene extends Phaser.Scene {
       .text(980, 183, 'EMAIL DELIVERED', {
         fontFamily: 'Arial',
         fontSize: '17px',
-        color: '#ffffff',
+        color: '#001d6c',
         fontStyle: 'bold',
-        backgroundColor: '#1f4f78',
+        backgroundColor: '#d0e2ff',
         padding: { x: 14, y: 7 },
       })
       .setOrigin(0, 0.5)
@@ -811,7 +821,7 @@ export class LevelTwoScene extends Phaser.Scene {
     )
 
     const progressBg = this.add.rectangle(1180, 443, 390, 26, 0xd9d9d9).setStrokeStyle(3, 0x2c2c2a)
-    const progress = this.add.rectangle(987, 443, 0, 22, 0x6f9e57).setOrigin(0, 0.5)
+    const progress = this.add.rectangle(987, 443, 0, 22, 0x78a9ff).setOrigin(0, 0.5)
     const status = this.add
       .text(1180, 485, 'Review in progress…', {
         fontFamily: 'Arial',
@@ -861,7 +871,7 @@ export class LevelTwoScene extends Phaser.Scene {
         continueButton
           .setText(label)
           .setColor('#ffffff')
-          .setBackgroundColor('#5f914f')
+          .setBackgroundColor('#002d9c')
           .setInteractive({ useHandCursor: true })
           .once('pointerdown', onContinue)
         this.tweens.add({
@@ -877,19 +887,18 @@ export class LevelTwoScene extends Phaser.Scene {
 
   private showOutreachResult(score: number | null, feedback: string): void {
     const overlay = this.add.container(0, 0).setScrollFactor(0).setDepth(8000)
-    const background = this.add.rectangle(0, 0, WORLD_WIDTH, WORLD_HEIGHT, 0x173b5b).setOrigin(0)
-    const glow = this.add.circle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 540, 0xc98a3e, 0.12)
+    const background = this.add.rectangle(0, 0, WORLD_WIDTH, WORLD_HEIGHT, 0xedf5ff).setOrigin(0)
+    const glow = this.add.circle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 540, 0xa6c8ff, 0.12)
     const outerPanel = this.add
-      .rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 1240, 630, 0xc98a3e)
-      .setStrokeStyle(8, 0x2c2c2a)
+      .rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 1240, 630, 0xd0e2ff)
+      .setStrokeStyle(8, 0x001d6c)
     const panel = this.add
-      .rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2 + 10, 1180, 550, 0xf7f1e7)
-      .setStrokeStyle(5, 0x2c2c2a)
-    // Keep the title strip inside the cream results panel instead of letting it
-    // overlap the outer frame at the top of the screen.
-    const header = this.add.rectangle(WORLD_WIDTH / 2, 128, 1100, 58, 0xb98900)
+      .rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2 + 10, 1180, 550, 0xffffff)
+      .setStrokeStyle(5, 0x78a9ff)
+    // Align the title strip with the two cards and leave a clear gap below it.
+    const header = this.add.rectangle(692.5, 128, 1035, 58, 0xd0e2ff).setStrokeStyle(3, 0x001d6c)
     const headerText = this.add
-      .text(WORLD_WIDTH / 2, 128, 'MISSION RESULTS', {
+      .text(692.5, 128, 'MISSION RESULTS', {
         fontFamily: 'Arial',
         fontSize: '27px',
         color: '#111111',
@@ -897,22 +906,22 @@ export class LevelTwoScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
 
-    const scoreCard = this.add.rectangle(370, 375, 390, 440, 0xe7f0f6).setStrokeStyle(5, 0x2c2c2a)
+    const scoreCard = this.add.rectangle(370, 405, 390, 370, 0xedf5ff).setStrokeStyle(5, 0x002d9c)
     const stageBadge = this.add
-      .text(370, 190, 'LEVEL 2  •  OUTREACH', {
+      .text(370, 250, 'LEVEL 2  •  OUTREACH', {
         fontFamily: 'Arial',
         fontSize: '17px',
-        color: '#ffffff',
+        color: '#001d6c',
         fontStyle: 'bold',
-        backgroundColor: '#1f4f78',
+        backgroundColor: '#d0e2ff',
         padding: { x: 18, y: 9 },
       })
       .setOrigin(0.5)
     const scoreRing = this.add
-      .circle(370, 330, 105, score === null ? 0xd9d9d9 : 0xfff3cf)
-      .setStrokeStyle(9, score === null ? 0x777777 : 0xb98900)
+      .circle(370, 365, 93, score === null ? 0xd9d9d9 : 0xedf5ff)
+      .setStrokeStyle(9, score === null ? 0x777777 : 0x78a9ff)
     const scoreText = this.add
-      .text(370, 330, score === null ? 'N/A' : `${score}/6`, {
+      .text(370, 365, score === null ? 'N/A' : `${score}/6`, {
         fontFamily: 'Arial',
         fontSize: '55px',
         color: '#1f4f78',
@@ -930,7 +939,7 @@ export class LevelTwoScene extends Phaser.Scene {
         {
           fontFamily: 'Arial',
           fontSize: '22px',
-          color: score === null ? '#6b6b6b' : passed ? '#3f7332' : '#9b442f',
+          color: score === null ? '#6b6b6b' : passed ? '#002d9c' : '#9b442f',
           align: 'center',
           fontStyle: 'bold',
         }
@@ -942,26 +951,26 @@ export class LevelTwoScene extends Phaser.Scene {
       .text(370, 530, [0, 1, 2].map((index) => (index < starsEarned ? '★' : '☆')).join('  '), {
         fontFamily: 'Arial',
         fontSize: '43px',
-        color: '#c98a3e',
+        color: '#002d9c',
         stroke: '#2c2c2a',
         strokeThickness: 2,
       })
       .setOrigin(0.5)
 
     const feedbackCard = this.add
-      .rectangle(900, 350, 620, 390, 0xffffff)
-      .setStrokeStyle(5, 0x2c2c2a)
+      .rectangle(900, 385, 620, 330, 0xffffff)
+      .setStrokeStyle(5, 0x002d9c)
     const feedbackLabel = this.add
-      .text(620, 178, score === null ? 'SYSTEM UPDATE' : 'COACH FEEDBACK', {
+      .text(620, 245, score === null ? 'SYSTEM UPDATE' : 'COACH FEEDBACK', {
         fontFamily: 'Arial',
         fontSize: '18px',
-        color: '#ffffff',
+        color: '#001d6c',
         fontStyle: 'bold',
-        backgroundColor: score === null ? '#6b6b6b' : '#1f4f78',
+        backgroundColor: score === null ? '#e0e0e0' : '#d0e2ff',
         padding: { x: 16, y: 8 },
       })
       .setOrigin(0, 0.5)
-    const feedbackText = this.add.text(625, 238, feedback, {
+    const feedbackText = this.add.text(625, 280, feedback, {
       fontFamily: 'Arial',
       fontSize: '21px',
       color: '#222222',
@@ -971,7 +980,7 @@ export class LevelTwoScene extends Phaser.Scene {
     const objective = this.add
       .text(
         900,
-        500,
+        520,
         score === null
           ? 'No score was recorded. Retry when grading is available.'
           : passed
@@ -993,7 +1002,7 @@ export class LevelTwoScene extends Phaser.Scene {
         fontSize: '23px',
         fontStyle: 'bold',
         color: '#ffffff',
-        backgroundColor: '#5b8c4a',
+        backgroundColor: '#002d9c',
         padding: { x: 32, y: 14 },
       })
       .setOrigin(0.5)
@@ -1075,12 +1084,12 @@ export class LevelTwoScene extends Phaser.Scene {
     const card = this.add
       .rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 700, 390, 0xf4f7f9)
       .setStrokeStyle(7, 0x2c2c2a)
-    const strip = this.add.rectangle(WORLD_WIDTH / 2, 205, 700, 80, 0xb98900)
+    const strip = this.add.rectangle(WORLD_WIDTH / 2, 205, 700, 80, 0xd0e2ff)
     const star = this.add
       .text(WORLD_WIDTH / 2, 292, '★', {
         fontFamily: 'Arial',
         fontSize: '72px',
-        color: '#c98a3e',
+        color: '#002d9c',
         stroke: '#2c2c2a',
         strokeThickness: 5,
       })
@@ -1113,7 +1122,7 @@ export class LevelTwoScene extends Phaser.Scene {
         fontSize: '22px',
         fontStyle: 'bold',
         color: '#ffffff',
-        backgroundColor: '#5b8c4a',
+        backgroundColor: '#002d9c',
         padding: { x: 30, y: 14 },
       })
       .setOrigin(0.5)
@@ -1297,14 +1306,14 @@ export class LevelTwoScene extends Phaser.Scene {
 
     const menu = this.add.container(0, 0).setScrollFactor(0).setDepth(7000)
     const dimmer = this.add
-      .rectangle(0, 0, WORLD_WIDTH, WORLD_HEIGHT, 0xefe1c7, 0.76)
+      .rectangle(0, 0, WORLD_WIDTH, WORLD_HEIGHT, 0xedf5ff, 0.76)
       .setOrigin(0)
       .setInteractive()
     const panel = this.add
       .rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 720, 220, 0xf3f6f8)
       .setStrokeStyle(4, 0x111111)
     const topStrip = this.add
-      .rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2 - 98, 720, 18, 0xb98900)
+      .rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2 - 98, 720, 18, 0xd0e2ff)
       .setStrokeStyle(3, 0x111111)
     const resume = this.createMenuButton(
       WORLD_WIDTH / 2 - 215,
@@ -1335,7 +1344,7 @@ export class LevelTwoScene extends Phaser.Scene {
   ): Phaser.GameObjects.Container {
     const container = this.add.container(x, y)
     const background = this.add
-      .rectangle(0, 0, 160, 50, 0x5b8c4a)
+      .rectangle(0, 0, 160, 50, 0x002d9c)
       .setStrokeStyle(3, 0x111111)
       .setInteractive({ useHandCursor: true })
     const text = this.add
@@ -1361,7 +1370,7 @@ export class LevelTwoScene extends Phaser.Scene {
 
     const panel = this.add.container(0, 0).setScrollFactor(0).setDepth(7200)
     const dimmer = this.add
-      .rectangle(0, 0, WORLD_WIDTH, WORLD_HEIGHT, 0xefe1c7, 0.82)
+      .rectangle(0, 0, WORLD_WIDTH, WORLD_HEIGHT, 0xedf5ff, 0.82)
       .setOrigin(0)
       .setInteractive()
     const notebookWidth = 460
@@ -1371,9 +1380,11 @@ export class LevelTwoScene extends Phaser.Scene {
     const notebookBody = this.add
       .rectangle(notebookX, notebookY, notebookWidth, notebookHeight, 0xf4f7f9)
       .setStrokeStyle(5, 0x111111)
+      .setInteractive()
     const header = this.add
-      .rectangle(notebookX, 94, notebookWidth, 105, 0xb98900)
+      .rectangle(notebookX, 94, notebookWidth, 105, 0xd0e2ff)
       .setStrokeStyle(5, 0x111111)
+      .setInteractive()
     const iconCircle = this.add.circle(notebookX, 94, 42, 0x2c2c2a).setStrokeStyle(4, 0x000000)
     const iconPaper = this.add
       .rectangle(notebookX, 94, 27, 38, 0xf4f7f9)
@@ -1393,7 +1404,11 @@ export class LevelTwoScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(7300)
     const textarea = input.getChildByName('levelTwoNotes') as HTMLTextAreaElement | null
-    if (textarea) textarea.value = this.notes
+    if (textarea) {
+      textarea.value = this.notes
+      textarea.addEventListener('keydown', (event) => event.stopPropagation())
+      textarea.addEventListener('keyup', (event) => event.stopPropagation())
+    }
 
     const saveX = notebookX + notebookWidth / 2 - 25
     const saveY = notebookY + notebookHeight / 2 + 28
@@ -1406,18 +1421,23 @@ export class LevelTwoScene extends Phaser.Scene {
     saveTriangle.fillStyle(0x2c2c2a)
     saveTriangle.fillTriangle(saveX - 7, saveY - 11, saveX - 7, saveY + 11, saveX + 11, saveY)
 
-    const saveNotebook = () => {
-      if (textarea) this.notes = textarea.value
+    const finishNotebook = () => {
+      if (textarea) {
+        this.notes = textarea.value
+        saveNotebook(this.preparationMode ? 3 : 2, this.notes)
+      }
       input.destroy()
       panel.destroy(true)
       this.notebookPanel = undefined
       this.notebookInput = undefined
     }
 
+    dimmer.on('pointerdown', finishNotebook)
+
     this.effects.addButtonHover(saveButton)
     saveButton.on('pointerdown', () => {
       this.effects.pressButton(saveButton)
-      this.effects.playSaveSparkles(saveX, saveY, saveNotebook)
+      this.effects.playSaveSparkles(saveX, saveY, finishNotebook)
     })
 
     panel.add([

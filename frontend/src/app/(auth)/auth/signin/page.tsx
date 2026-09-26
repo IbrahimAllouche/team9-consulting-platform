@@ -109,7 +109,7 @@ export default function SignInPage() {
               New consultant?{' '}
               <Link
                 href="/auth/signup"
-                className="hover:text-light-blue font-medium text-white underline underline-offset-4"
+                className="font-medium text-[#001d6c] underline underline-offset-4 hover:text-[#002d9c]"
               >
                 Create an account
               </Link>
